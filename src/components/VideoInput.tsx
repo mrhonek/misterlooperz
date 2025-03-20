@@ -1,55 +1,68 @@
 import React, { useState } from 'react';
 
 interface VideoInputProps {
-  onSubmit: (videoId: string, startTime: number, endTime?: number) => void;
+  onAddVideo: (videoId: string, title: string, startTime: number, endTime: number) => void;
 }
 
-const VideoInput: React.FC<VideoInputProps> = ({ onSubmit }) => {
+const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
   const [url, setUrl] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [error, setError] = useState('');
 
-  const extractVideoId = (url: string): string | null => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return match && match[2].length === 11 ? match[2] : null;
-  };
-
-  const parseTime = (timeStr: string): number => {
-    const [minutes, seconds] = timeStr.split(':').map(Number);
-    return minutes * 60 + seconds;
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
+    // Extract video ID from URL
     const videoId = extractVideoId(url);
     if (!videoId) {
       setError('Please enter a valid YouTube URL');
       return;
     }
 
-    let startTimeSeconds = 0;
-    let endTimeSeconds: number | undefined;
+    // Convert time inputs to seconds
+    const startSeconds = timeToSeconds(startTime);
+    const endSeconds = timeToSeconds(endTime);
 
-    try {
-      if (startTime) {
-        startTimeSeconds = parseTime(startTime);
-      }
-      if (endTime) {
-        endTimeSeconds = parseTime(endTime);
-      }
-    } catch (err) {
-      setError('Please enter valid time format (MM:SS)');
+    if (startSeconds === null || endSeconds === null) {
+      setError('Please enter valid start and end times');
       return;
     }
 
-    onSubmit(videoId, startTimeSeconds, endTimeSeconds);
+    if (endSeconds <= startSeconds) {
+      setError('End time must be greater than start time');
+      return;
+    }
+
+    // For now, we'll use a placeholder title
+    // In a real app, you'd fetch the actual video title from YouTube's API
+    const title = `Video ${videoId}`;
+    onAddVideo(videoId, title, startSeconds, endSeconds);
+
+    // Reset form
     setUrl('');
     setStartTime('');
     setEndTime('');
+  };
+
+  const extractVideoId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?]+)/,
+      /youtube\.com\/embed\/([^&\n?]+)/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
+  const timeToSeconds = (timeStr: string): number | null => {
+    const [minutes, seconds] = timeStr.split(':').map(Number);
+    if (isNaN(minutes) || isNaN(seconds)) return null;
+    return minutes * 60 + seconds;
   };
 
   return (
@@ -63,8 +76,8 @@ const VideoInput: React.FC<VideoInputProps> = ({ onSubmit }) => {
           id="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           placeholder="https://www.youtube.com/watch?v=..."
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           required
         />
       </div>
@@ -75,12 +88,13 @@ const VideoInput: React.FC<VideoInputProps> = ({ onSubmit }) => {
             Start Time (MM:SS)
           </label>
           <input
-            type="text"
+            type="time"
             id="startTime"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
+            step="1"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            placeholder="0:00"
+            required
           />
         </div>
 
@@ -89,23 +103,24 @@ const VideoInput: React.FC<VideoInputProps> = ({ onSubmit }) => {
             End Time (MM:SS)
           </label>
           <input
-            type="text"
+            type="time"
             id="endTime"
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
+            step="1"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            placeholder="0:00"
+            required
           />
         </div>
       </div>
 
       {error && (
-        <p className="text-red-500 text-sm">{error}</p>
+        <div className="text-red-500 text-sm">{error}</div>
       )}
 
       <button
         type="submit"
-        className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
       >
         Add to Playlist
       </button>
