@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import YouTube, { YouTubeEvent, YouTubePlayer as YouTubePlayerType } from 'react-youtube';
+import YouTube from 'react-youtube';
 
 // Declare the YouTube IFrame API types
 declare global {
@@ -27,7 +27,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   endTime,
   onEnd,
 }) => {
-  const playerRef = useRef<YouTubePlayerType | null>(null);
+  const playerRef = useRef<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout>();
 
@@ -73,11 +73,11 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     };
   }, [endTime, startTime, isPlaying]);
 
-  const onPlayerReady = (event: YouTubeEvent) => {
+  const onPlayerReady = (event: any) => {
     playerRef.current = event.target;
   };
 
-  const onStateChange = (event: YouTubeEvent) => {
+  const onStateChange = (event: any) => {
     if (event.data === window.YT.PlayerState.ENDED) {
       if (onEnd) {
         onEnd();
