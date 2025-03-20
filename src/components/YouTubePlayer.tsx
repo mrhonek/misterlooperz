@@ -100,14 +100,14 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       />
       <div className="mt-4 space-x-4">
         <button
-          onClick={() => playerRef.current?.playVideo()}
+          onClick={() => playerRef.current?.playVideo(0)}
           disabled={isPlaying}
           className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
         >
           Play
         </button>
         <button
-          onClick={() => playerRef.current?.pauseVideo()}
+          onClick={() => playerRef.current?.pauseVideo(0)}
           disabled={!isPlaying}
           className="px-4 py-2 bg-red-500 text-white rounded disabled:bg-gray-400"
         >
