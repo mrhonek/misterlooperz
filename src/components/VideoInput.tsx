@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 interface VideoInputProps {
-  onAddVideo: (videoId: string, title: string, startTime: number, endTime: number) => void;
+  onAddVideo: (videoId: string, title: string, startTime: number | null, endTime: number | null) => void;
 }
 
 const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
@@ -22,8 +22,8 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
     // For now, we'll use a placeholder title
     // In a real app, you'd fetch the actual video title from YouTube's API
     const title = `Video ${videoId}`;
-    // Set default times: start at 0, end at 1 hour (3600 seconds)
-    onAddVideo(videoId, title, 0, 3600);
+    // Set times as null initially
+    onAddVideo(videoId, title, null, null);
 
     // Reset form
     setUrl('');

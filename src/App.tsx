@@ -6,8 +6,8 @@ import VideoInput from './components/VideoInput';
 interface Video {
   id: string;
   title: string;
-  startTime: number;
-  endTime: number;
+  startTime: number | null;
+  endTime: number | null;
 }
 
 function App() {
@@ -21,7 +21,7 @@ function App() {
     localStorage.setItem('playlist', JSON.stringify(videos));
   }, [videos]);
 
-  const handleAddVideo = (videoId: string, title: string, startTime: number, endTime: number) => {
+  const handleAddVideo = (videoId: string, title: string, startTime: number | null, endTime: number | null) => {
     setVideos(prev => [...prev, { id: videoId, title, startTime, endTime }]);
   };
 
@@ -36,7 +36,7 @@ function App() {
     setCurrentVideo(video);
   };
 
-  const handleUpdateTimes = (id: string, startTime: number, endTime: number) => {
+  const handleUpdateTimes = (id: string, startTime: number | null, endTime: number | null) => {
     setVideos(prev => prev.map(video => 
       video.id === id ? { ...video, startTime, endTime } : video
     ));
@@ -58,8 +58,8 @@ function App() {
           <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
             <YouTubePlayer
               videoId={currentVideo.id}
-              startTime={currentVideo.startTime}
-              endTime={currentVideo.endTime}
+              startTime={currentVideo.startTime ?? 0}
+              endTime={currentVideo.endTime ?? undefined}
               onEnd={() => {
                 const currentIndex = videos.findIndex(v => v.id === currentVideo.id);
                 if (currentIndex < videos.length - 1) {

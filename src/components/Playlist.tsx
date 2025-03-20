@@ -3,25 +3,39 @@ import React from 'react';
 interface Video {
   id: string;
   title: string;
-  startTime: number;
-  endTime: number;
+  startTime: number | null;
+  endTime: number | null;
 }
 
 interface PlaylistProps {
   videos: Video[];
   onRemove: (id: string) => void;
   onPlay: (video: Video) => void;
-  onUpdateTimes: (id: string, startTime: number, endTime: number) => void;
+  onUpdateTimes: (id: string, startTime: number | null, endTime: number | null) => void;
 }
 
 const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateTimes }) => {
-  const formatTime = (seconds: number): string => {
+  const formatTime = (seconds: number | null): string => {
+    if (seconds === null) return '';
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const handleTimeChange = (id: string, field: 'startTime' | 'endTime', value: string) => {
+    if (!value) {
+      // If the input is empty, set the time to null
+      const video = videos.find(v => v.id === id);
+      if (video) {
+        if (field === 'startTime') {
+          onUpdateTimes(id, null, video.endTime);
+        } else {
+          onUpdateTimes(id, video.startTime, null);
+        }
+      }
+      return;
+    }
+
     const [minutes, seconds] = value.split(':').map(Number);
     if (isNaN(minutes) || isNaN(seconds)) return;
     
@@ -29,11 +43,11 @@ const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateT
     const video = videos.find(v => v.id === id);
     if (video) {
       if (field === 'startTime') {
-        if (totalSeconds < video.endTime) {
+        if (video.endTime === null || totalSeconds < video.endTime) {
           onUpdateTimes(id, totalSeconds, video.endTime);
         }
       } else {
-        if (totalSeconds > video.startTime) {
+        if (video.startTime === null || totalSeconds > video.startTime) {
           onUpdateTimes(id, video.startTime, totalSeconds);
         }
       }
