@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface Video {
   id: string;
@@ -15,6 +15,8 @@ interface PlaylistProps {
 }
 
 const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateTimes }) => {
+  const [inputValues, setInputValues] = useState<{ [key: string]: { start: string; end: string } }>({});
+
   const formatTime = (seconds: number | null): string => {
     if (seconds === null) return '';
     const minutes = Math.floor(seconds / 60);
@@ -23,8 +25,17 @@ const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateT
   };
 
   const handleTimeChange = (id: string, field: 'startTime' | 'endTime', value: string) => {
+    // Update the input value immediately
+    setInputValues(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field === 'startTime' ? 'start' : 'end']: value
+      }
+    }));
+
+    // If the input is empty, set the time to null
     if (!value) {
-      // If the input is empty, set the time to null
       const video = videos.find(v => v.id === id);
       if (video) {
         if (field === 'startTime') {
@@ -36,7 +47,7 @@ const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateT
       return;
     }
 
-    // Allow any input format and try to parse it
+    // Try to parse the time value
     const parts = value.split(':');
     if (parts.length !== 2) return;
 
@@ -75,7 +86,7 @@ const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateT
                     <input
                       type="text"
                       placeholder="M:SS"
-                      value={formatTime(video.startTime)}
+                      value={inputValues[video.id]?.start ?? formatTime(video.startTime)}
                       onChange={(e) => handleTimeChange(video.id, 'startTime', e.target.value)}
                       className="border rounded px-2 py-1 text-sm w-20"
                     />
