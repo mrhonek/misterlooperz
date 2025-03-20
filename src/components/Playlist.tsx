@@ -96,7 +96,7 @@ const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateT
                     <input
                       type="text"
                       placeholder="M:SS"
-                      value={formatTime(video.endTime)}
+                      value={inputValues[video.id]?.end ?? formatTime(video.endTime)}
                       onChange={(e) => handleTimeChange(video.id, 'endTime', e.target.value)}
                       className="border rounded px-2 py-1 text-sm w-20"
                     />
