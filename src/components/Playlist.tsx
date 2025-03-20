@@ -23,13 +23,19 @@ const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateT
 
   const handleTimeChange = (id: string, field: 'startTime' | 'endTime', value: string) => {
     const [minutes, seconds] = value.split(':').map(Number);
+    if (isNaN(minutes) || isNaN(seconds)) return;
+    
     const totalSeconds = minutes * 60 + seconds;
     const video = videos.find(v => v.id === id);
     if (video) {
       if (field === 'startTime') {
-        onUpdateTimes(id, totalSeconds, video.endTime);
+        if (totalSeconds < video.endTime) {
+          onUpdateTimes(id, totalSeconds, video.endTime);
+        }
       } else {
-        onUpdateTimes(id, video.startTime, totalSeconds);
+        if (totalSeconds > video.startTime) {
+          onUpdateTimes(id, video.startTime, totalSeconds);
+        }
       }
     }
   };
@@ -47,21 +53,23 @@ const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateT
                   <div className="flex items-center space-x-2">
                     <label className="text-sm text-gray-600">Start:</label>
                     <input
-                      type="time"
-                      step="1"
+                      type="text"
+                      pattern="[0-9]+:[0-9]{2}"
+                      placeholder="M:SS"
                       value={formatTime(video.startTime)}
                       onChange={(e) => handleTimeChange(video.id, 'startTime', e.target.value)}
-                      className="border rounded px-2 py-1 text-sm"
+                      className="border rounded px-2 py-1 text-sm w-20"
                     />
                   </div>
                   <div className="flex items-center space-x-2">
                     <label className="text-sm text-gray-600">End:</label>
                     <input
-                      type="time"
-                      step="1"
+                      type="text"
+                      pattern="[0-9]+:[0-9]{2}"
+                      placeholder="M:SS"
                       value={formatTime(video.endTime)}
                       onChange={(e) => handleTimeChange(video.id, 'endTime', e.target.value)}
-                      className="border rounded px-2 py-1 text-sm"
+                      className="border rounded px-2 py-1 text-sm w-20"
                     />
                   </div>
                 </div>

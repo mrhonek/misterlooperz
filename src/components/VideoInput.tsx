@@ -6,8 +6,6 @@ interface VideoInputProps {
 
 const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
   const [url, setUrl] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -21,29 +19,14 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
       return;
     }
 
-    // Convert time inputs to seconds
-    const startSeconds = timeToSeconds(startTime);
-    const endSeconds = timeToSeconds(endTime);
-
-    if (startSeconds === null || endSeconds === null) {
-      setError('Please enter valid start and end times');
-      return;
-    }
-
-    if (endSeconds <= startSeconds) {
-      setError('End time must be greater than start time');
-      return;
-    }
-
     // For now, we'll use a placeholder title
     // In a real app, you'd fetch the actual video title from YouTube's API
     const title = `Video ${videoId}`;
-    onAddVideo(videoId, title, startSeconds, endSeconds);
+    // Set default times: start at 0, end at 1 hour (3600 seconds)
+    onAddVideo(videoId, title, 0, 3600);
 
     // Reset form
     setUrl('');
-    setStartTime('');
-    setEndTime('');
   };
 
   const extractVideoId = (url: string): string | null => {
@@ -57,12 +40,6 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
       if (match) return match[1];
     }
     return null;
-  };
-
-  const timeToSeconds = (timeStr: string): number | null => {
-    const [minutes, seconds] = timeStr.split(':').map(Number);
-    if (isNaN(minutes) || isNaN(seconds)) return null;
-    return minutes * 60 + seconds;
   };
 
   return (
@@ -80,38 +57,6 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           required
         />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="startTime" className="block text-sm font-medium text-gray-700">
-            Start Time (MM:SS)
-          </label>
-          <input
-            type="time"
-            id="startTime"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            step="1"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="endTime" className="block text-sm font-medium text-gray-700">
-            End Time (MM:SS)
-          </label>
-          <input
-            type="time"
-            id="endTime"
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-            step="1"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-          />
-        </div>
       </div>
 
       {error && (
