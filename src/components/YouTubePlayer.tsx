@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import YouTube from 'react-youtube';
+import YouTube, { YouTubeEvent, YouTubePlayer as YouTubePlayerType } from 'react-youtube';
 
 interface YouTubePlayerProps {
   videoId: string;
@@ -14,7 +14,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   endTime,
   onEnd,
 }) => {
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<YouTubePlayerType | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout>();
 
@@ -30,7 +30,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
   useEffect(() => {
     if (playerRef.current) {
-      playerRef.current.seekTo(startTime);
+      playerRef.current.seekTo(startTime, true);
     }
   }, [startTime]);
 
@@ -46,7 +46,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         if (playerRef.current) {
           const currentTime = playerRef.current.getCurrentTime();
           if (currentTime >= endTime) {
-            playerRef.current.seekTo(startTime);
+            playerRef.current.seekTo(startTime, true);
           }
         }
       }, 1000); // Check every second
@@ -60,11 +60,11 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     };
   }, [endTime, startTime, isPlaying]);
 
-  const onPlayerReady = (event: any) => {
+  const onPlayerReady = (event: YouTubeEvent) => {
     playerRef.current = event.target;
   };
 
-  const onStateChange = (event: any) => {
+  const onStateChange = (event: YouTubeEvent) => {
     if (event.data === window.YT.PlayerState.ENDED) {
       if (onEnd) {
         onEnd();
