@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import YouTubePlayer from './components/YouTubePlayer';
 import Playlist from './components/Playlist';
 import VideoInput from './components/VideoInput';

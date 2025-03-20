@@ -23,6 +23,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     playerVars: {
       autoplay: 0,
       start: startTime,
+      end: endTime,
     },
   };
 
