@@ -36,8 +36,14 @@ const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateT
       return;
     }
 
-    const [minutes, seconds] = value.split(':').map(Number);
-    if (isNaN(minutes) || isNaN(seconds)) return;
+    // Allow any input format and try to parse it
+    const parts = value.split(':');
+    if (parts.length !== 2) return;
+
+    const minutes = parseInt(parts[0], 10);
+    const seconds = parseInt(parts[1], 10);
+
+    if (isNaN(minutes) || isNaN(seconds) || seconds >= 60) return;
     
     const totalSeconds = minutes * 60 + seconds;
     const video = videos.find(v => v.id === id);
@@ -68,7 +74,6 @@ const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateT
                     <label className="text-sm text-gray-600">Start:</label>
                     <input
                       type="text"
-                      pattern="[0-9]+:[0-9]{2}"
                       placeholder="M:SS"
                       value={formatTime(video.startTime)}
                       onChange={(e) => handleTimeChange(video.id, 'startTime', e.target.value)}
@@ -79,7 +84,6 @@ const Playlist: React.FC<PlaylistProps> = ({ videos, onRemove, onPlay, onUpdateT
                     <label className="text-sm text-gray-600">End:</label>
                     <input
                       type="text"
-                      pattern="[0-9]+:[0-9]{2}"
                       placeholder="M:SS"
                       value={formatTime(video.endTime)}
                       onChange={(e) => handleTimeChange(video.id, 'endTime', e.target.value)}

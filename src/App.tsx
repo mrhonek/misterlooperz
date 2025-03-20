@@ -16,6 +16,7 @@ function App() {
     return savedVideos ? JSON.parse(savedVideos) : [];
   });
   const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
+  const [playerKey, setPlayerKey] = useState(0);
 
   useEffect(() => {
     localStorage.setItem('playlist', JSON.stringify(videos));
@@ -34,6 +35,7 @@ function App() {
 
   const handlePlayVideo = (video: Video) => {
     setCurrentVideo(video);
+    setPlayerKey(prev => prev + 1);
   };
 
   const handleUpdateTimes = (id: string, startTime: number | null, endTime: number | null) => {
@@ -57,6 +59,7 @@ function App() {
         {currentVideo && (
           <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
             <YouTubePlayer
+              key={playerKey}
               videoId={currentVideo.id}
               startTime={currentVideo.startTime ?? 0}
               endTime={currentVideo.endTime ?? undefined}
