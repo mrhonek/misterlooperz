@@ -57,7 +57,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     if (endTime && isPlaying) {
       intervalRef.current = setInterval(() => {
         if (playerRef.current) {
-          const currentTime = playerRef.current.getCurrentTime();
+          const currentTime = playerRef.current.getCurrentTime(0);
           if (currentTime >= endTime) {
             playerRef.current.seekTo(startTime, true);
           }
