@@ -16,6 +16,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 }) => {
   const playerRef = useRef<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout>();
 
   const opts = {
     height: '390',
@@ -35,6 +36,35 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       }
     }
   }, [startTime]);
+
+  useEffect(() => {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    // Only set up the interval if we have an end time
+    if (endTime && isPlaying) {
+      intervalRef.current = setInterval(() => {
+        if (playerRef.current) {
+          const player = playerRef.current.getInternalPlayer();
+          if (player) {
+            const currentTime = player.getCurrentTime();
+            if (currentTime >= endTime) {
+              player.seekTo(startTime);
+            }
+          }
+        }
+      }, 1000); // Check every second
+    }
+
+    // Cleanup interval on unmount or when dependencies change
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [endTime, startTime, isPlaying]);
 
   const onPlayerReady = (event: any) => {
     playerRef.current = event.target;
