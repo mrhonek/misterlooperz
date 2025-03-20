@@ -30,10 +30,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
   useEffect(() => {
     if (playerRef.current) {
-      const player = playerRef.current.getInternalPlayer();
-      if (player) {
-        player.seekTo(startTime);
-      }
+      playerRef.current.seekTo(startTime);
     }
   }, [startTime]);
 
@@ -47,12 +44,9 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     if (endTime && isPlaying) {
       intervalRef.current = setInterval(() => {
         if (playerRef.current) {
-          const player = playerRef.current.getInternalPlayer();
-          if (player) {
-            const currentTime = player.getCurrentTime();
-            if (currentTime >= endTime) {
-              player.seekTo(startTime);
-            }
+          const currentTime = playerRef.current.getCurrentTime();
+          if (currentTime >= endTime) {
+            playerRef.current.seekTo(startTime);
           }
         }
       }, 1000); // Check every second
