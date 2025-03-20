@@ -43,7 +43,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
   useEffect(() => {
     if (playerRef.current) {
-      playerRef.current.seekTo(startTime, true);
+      playerRef.current.seekTo(startTime);
     }
   }, [startTime]);
 
@@ -57,9 +57,9 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     if (endTime && isPlaying) {
       intervalRef.current = setInterval(() => {
         if (playerRef.current) {
-          const currentTime = playerRef.current.getCurrentTime(0);
+          const currentTime = playerRef.current.getCurrentTime();
           if (currentTime >= endTime) {
-            playerRef.current.seekTo(startTime, true);
+            playerRef.current.seekTo(startTime);
           }
         }
       }, 1000); // Check every second
@@ -100,14 +100,14 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       />
       <div className="mt-4 space-x-4">
         <button
-          onClick={() => playerRef.current?.playVideo(0)}
+          onClick={() => playerRef.current?.playVideo()}
           disabled={isPlaying}
           className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
         >
           Play
         </button>
         <button
-          onClick={() => playerRef.current?.pauseVideo(0)}
+          onClick={() => playerRef.current?.pauseVideo()}
           disabled={!isPlaying}
           className="px-4 py-2 bg-red-500 text-white rounded disabled:bg-gray-400"
         >
