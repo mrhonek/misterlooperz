@@ -1,6 +1,19 @@
 import React, { useRef, useEffect, useState } from 'react';
 import YouTube, { YouTubeEvent, YouTubePlayer as YouTubePlayerType } from 'react-youtube';
 
+// Declare the YouTube IFrame API types
+declare global {
+  interface Window {
+    YT: {
+      PlayerState: {
+        ENDED: number;
+        PLAYING: number;
+        PAUSED: number;
+      };
+    };
+  }
+}
+
 interface YouTubePlayerProps {
   videoId: string;
   startTime?: number;
