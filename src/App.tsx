@@ -14,7 +14,16 @@ function App() {
   useEffect(() => {
     const savedVideos = localStorage.getItem('videos');
     if (savedVideos) {
-      setVideos(JSON.parse(savedVideos));
+      try {
+        const parsedVideos = JSON.parse(savedVideos);
+        setVideos(parsedVideos);
+        if (parsedVideos.length > 0 && !currentVideo) {
+          setCurrentVideo(parsedVideos[0]);
+        }
+      } catch (e) {
+        console.error('Failed to parse saved videos:', e);
+        localStorage.removeItem('videos');
+      }
     }
   }, []);
 
@@ -50,6 +59,7 @@ function App() {
 
     if (currentVideo && currentVideo.id === id) {
       setCurrentVideo(newVideos.length > 0 ? newVideos[0] : null);
+      setPlayerKey(prev => prev + 1);
     }
   };
 
@@ -82,6 +92,10 @@ function App() {
       const updatedVideo = newVideos.find(v => v.id === id);
       if (updatedVideo) {
         setCurrentVideo(updatedVideo);
+        // If the currently playing video's startTime changed, update the player
+        if (type === 'startTime' && value !== currentVideo.startTime) {
+          setPlayerKey(prev => prev + 1);
+        }
       }
     }
   };
@@ -92,11 +106,24 @@ function App() {
     return match && match[2].length === 11 ? match[2] : null;
   };
 
+  const handleVideoEnd = () => {
+    // Move to the next video in the playlist when a video ends
+    if (currentVideo && videos.length > 1) {
+      const currentIndex = videos.findIndex(v => v.id === currentVideo.id);
+      if (currentIndex < videos.length - 1) {
+        handlePlayVideo(videos[currentIndex + 1]);
+      } else {
+        // Loop back to the first video if we're at the end of the playlist
+        handlePlayVideo(videos[0]);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-10">
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600 mb-2">
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600 mb-2 gradient-text">
             MisterLooperz
           </h1>
           <p className="text-gray-300">Loop and play your favorite YouTube videos</p>
@@ -111,6 +138,7 @@ function App() {
                   videoId={currentVideo.videoId} 
                   startTime={currentVideo.startTime} 
                   endTime={currentVideo.endTime}
+                  onEnd={handleVideoEnd}
                 />
                 <div className="mt-4 bg-gray-800 rounded-lg p-4 shadow-lg">
                   <h2 className="text-xl font-semibold mb-2">Now Playing</h2>
@@ -134,17 +162,13 @@ function App() {
           <div className="lg:col-span-1">
             <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
               <h2 className="text-xl font-semibold mb-4">Your Playlist</h2>
-              {videos.length > 0 ? (
-                <Playlist 
-                  videos={videos} 
-                  currentVideo={currentVideo} 
-                  onPlayVideo={handlePlayVideo} 
-                  onRemoveVideo={handleRemoveVideo}
-                  onTimeChange={handleTimeChange}
-                />
-              ) : (
-                <p className="text-gray-400">Your playlist is empty. Add some videos!</p>
-              )}
+              <Playlist 
+                videos={videos} 
+                currentVideo={currentVideo} 
+                onPlayVideo={handlePlayVideo} 
+                onRemoveVideo={handleRemoveVideo}
+                onTimeChange={handleTimeChange}
+              />
             </div>
           </div>
         </div>
