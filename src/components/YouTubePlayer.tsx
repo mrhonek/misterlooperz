@@ -230,47 +230,88 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     }
   };
 
+  const containerStyle: React.CSSProperties = {
+    width: '100%',
+    border: '1px solid #444',
+    borderRadius: '5px',
+    overflow: 'hidden',
+    marginBottom: '20px'
+  };
+
+  const controlsStyle: React.CSSProperties = {
+    padding: '10px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    backgroundColor: '#333',
+    color: 'white'
+  };
+
+  const buttonRowStyle: React.CSSProperties = {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '10px',
+    width: '100%'
+  };
+
+  const playButtonStyle: React.CSSProperties = {
+    backgroundColor: isPlaying ? '#e53e3e' : '#3182ce',
+    color: 'white',
+    fontWeight: 'bold',
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  };
+
+  const backButtonStyle: React.CSSProperties = {
+    backgroundColor: '#4a5568',
+    color: 'white',
+    fontWeight: 'bold',
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  };
+
+  const timeDisplayStyle: React.CSSProperties = {
+    fontSize: '14px',
+    marginTop: '5px',
+    display: 'flex',
+    gap: '15px'
+  };
+
   return (
-    <div className="w-full rounded-lg overflow-hidden bg-gray-800 border border-gray-700">
+    <div style={containerStyle}>
       <YouTube
         videoId={videoId}
         opts={opts}
         onReady={onPlayerReady}
         onStateChange={onStateChange}
-        className="w-full"
+        style={{ width: '100%' }}
       />
       
-      <div className="p-4 flex flex-col sm:flex-row items-center justify-between bg-gray-700">
-        <div className="flex items-center space-x-4 mb-2 sm:mb-0">
+      <div style={controlsStyle}>
+        <div style={buttonRowStyle}>
           <button
             onClick={isPlaying ? handlePause : handlePlay}
-            className={`${isPlaying ? 'bg-red-500' : 'bg-blue-500'} text-white font-bold py-2 px-4 rounded`}
+            style={playButtonStyle}
           >
             {isPlaying ? 'Pause' : 'Play'}
           </button>
           
           <button
             onClick={handleSeekToStart}
-            className="bg-gray-600 text-white font-bold py-2 px-4 rounded"
+            style={backButtonStyle}
           >
             Back to Start
           </button>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center text-white text-sm">
-          <div className="mb-2 sm:mb-0 sm:mr-4">
-            Current: {formatTime(currentTime)}
-          </div>
-          {startTime !== null && (
-            <div className="mb-2 sm:mb-0 sm:mr-4">
-              Start: {formatTime(startTime)}
-            </div>
-          )}
-          {endTime !== null && (
-            <div>
-              End: {formatTime(endTime || 0)}
-            </div>
-          )}
+        <div style={timeDisplayStyle}>
+          <div>Current: {formatTime(currentTime)}</div>
+          {startTime !== null && <div>Start: {formatTime(startTime)}</div>}
+          {endTime !== null && <div>End: {formatTime(endTime || 0)}</div>}
         </div>
       </div>
     </div>

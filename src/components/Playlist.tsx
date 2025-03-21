@@ -36,52 +36,139 @@ const Playlist: React.FC<PlaylistProps> = ({
     onTimeChange(videoId, type === 'start' ? 'startTime' : 'endTime', parsedTime);
   };
 
+  const containerStyle: React.CSSProperties = {
+    maxHeight: '60vh',
+    overflowY: 'auto',
+    paddingRight: '10px'
+  };
+
+  const videoItemStyle = (isCurrentVideo: boolean): React.CSSProperties => ({
+    backgroundColor: isCurrentVideo ? '#2a4365' : '#444',
+    padding: '15px',
+    borderRadius: '5px',
+    marginBottom: '15px'
+  });
+
+  const titleStyle: React.CSSProperties = {
+    color: 'white',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    marginBottom: '15px'
+  };
+
+  const formGroupStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '15px',
+    marginBottom: '15px'
+  };
+
+  const inputGroupStyle: React.CSSProperties = {
+    width: '100%'
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: '14px',
+    color: '#ccc',
+    marginBottom: '5px'
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '5px 10px',
+    backgroundColor: '#333',
+    border: '1px solid #555',
+    borderRadius: '4px',
+    color: 'white',
+    fontSize: '14px'
+  };
+
+  const buttonGroupStyle: React.CSSProperties = {
+    display: 'flex',
+    gap: '10px'
+  };
+
+  const playButtonStyle: React.CSSProperties = {
+    backgroundColor: '#3182ce',
+    color: 'white',
+    fontWeight: 'bold',
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  };
+
+  const removeButtonStyle: React.CSSProperties = {
+    backgroundColor: '#e53e3e',
+    color: 'white',
+    fontWeight: 'bold',
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  };
+
+  const emptyPlaylistStyle: React.CSSProperties = {
+    textAlign: 'center',
+    padding: '30px 0'
+  };
+
+  const emptyTextStyle: React.CSSProperties = {
+    color: '#999'
+  };
+
+  const emptySubtextStyle: React.CSSProperties = {
+    color: '#777',
+    fontSize: '14px',
+    marginTop: '10px'
+  };
+
   return (
-    <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+    <div style={containerStyle}>
       {videos.map((video) => (
         <div
           key={video.id}
-          className={`rounded-lg p-4 mb-3 ${
-            currentVideo?.id === video.id ? 'bg-blue-900' : 'bg-gray-700'
-          }`}
+          style={videoItemStyle(currentVideo?.id === video.id)}
         >
-          <div className="w-full mb-3">
-            <p className="text-white truncate">{video.url.replace(/^https?:\/\//, '')}</p>
+          <div style={titleStyle}>
+            {video.url.replace(/^https?:\/\//, '')}
           </div>
           
-          <div className="grid grid-cols-2 gap-4 mb-3">
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">Start Time</label>
+          <div style={formGroupStyle}>
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Start Time</label>
               <input
                 type="text"
                 value={inputValues[video.id]?.start ?? formatTime(video.startTime)}
                 onChange={(e) => handleTimeChange(video.id, 'start', e.target.value)}
                 placeholder="0:00"
-                className="w-full px-3 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm"
+                style={inputStyle}
               />
             </div>
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">End Time</label>
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>End Time</label>
               <input
                 type="text"
                 value={inputValues[video.id]?.end ?? formatTime(video.endTime)}
                 onChange={(e) => handleTimeChange(video.id, 'end', e.target.value)}
                 placeholder="0:00"
-                className="w-full px-3 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm"
+                style={inputStyle}
               />
             </div>
           </div>
           
-          <div className="flex space-x-2">
+          <div style={buttonGroupStyle}>
             <button
               onClick={() => onPlayVideo(video)}
-              className="bg-blue-500 text-white font-bold py-2 px-4 rounded"
+              style={playButtonStyle}
             >
               Play
             </button>
             <button
               onClick={() => onRemoveVideo(video.id)}
-              className="bg-red-500 text-white font-bold py-2 px-4 rounded"
+              style={removeButtonStyle}
             >
               Remove
             </button>
@@ -90,9 +177,9 @@ const Playlist: React.FC<PlaylistProps> = ({
       ))}
       
       {videos.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-gray-400">No videos in your playlist yet.</p>
-          <p className="text-gray-500 text-sm mt-2">Add a YouTube video to get started!</p>
+        <div style={emptyPlaylistStyle}>
+          <p style={emptyTextStyle}>No videos in your playlist yet.</p>
+          <p style={emptySubtextStyle}>Add a YouTube video to get started!</p>
         </div>
       )}
     </div>

@@ -119,18 +119,88 @@ function App() {
     }
   };
 
+  const appStyle: React.CSSProperties = {
+    minHeight: '100vh',
+    backgroundColor: '#1a202c',
+    color: 'white',
+    fontFamily: 'Arial, sans-serif'
+  };
+
+  const containerStyle: React.CSSProperties = {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
+  };
+
+  const headerStyle: React.CSSProperties = {
+    textAlign: 'center',
+    marginBottom: '30px'
+  };
+
+  const titleStyle: React.CSSProperties = {
+    fontSize: '32px',
+    fontWeight: 'bold',
+    marginBottom: '10px'
+  };
+
+  const subtitleStyle: React.CSSProperties = {
+    color: '#ccc'
+  };
+
+  const mainContentStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '2fr 1fr',
+    gap: '20px',
+    width: '100%'
+  };
+
+  const columnStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px'
+  };
+
+  const sectionStyle: React.CSSProperties = {
+    backgroundColor: '#2d3748',
+    padding: '20px',
+    borderRadius: '5px'
+  };
+
+  const sectionTitleStyle: React.CSSProperties = {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    marginBottom: '15px'
+  };
+
+  const nowPlayingStyle: React.CSSProperties = {
+    marginTop: '15px',
+    backgroundColor: '#2d3748',
+    padding: '15px',
+    borderRadius: '5px'
+  };
+
+  const footerStyle: React.CSSProperties = {
+    marginTop: '40px',
+    textAlign: 'center',
+    color: '#999',
+    fontSize: '14px'
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-6">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">
+    <div style={appStyle}>
+      <div style={containerStyle}>
+        <header style={headerStyle}>
+          <h1 style={titleStyle}>
             MisterLooperz
           </h1>
-          <p className="text-gray-300">Loop and play your favorite YouTube videos</p>
+          <p style={subtitleStyle}>Loop and play your favorite YouTube videos</p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2">
+        <div style={mainContentStyle}>
+          <div style={columnStyle}>
             {currentVideo ? (
               <div>
                 <YouTubePlayer 
@@ -140,28 +210,28 @@ function App() {
                   endTime={currentVideo.endTime}
                   onEnd={handleVideoEnd}
                 />
-                <div className="mt-4 bg-gray-800 p-4 rounded">
-                  <h2 className="text-xl font-bold mb-2">Now Playing</h2>
-                  <p className="text-gray-300 truncate">
+                <div style={nowPlayingStyle}>
+                  <h2 style={sectionTitleStyle}>Now Playing</h2>
+                  <p style={{ color: '#ccc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {currentVideo.url.replace(/^https?:\/\//, '')}
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="bg-gray-800 h-[390px] rounded flex items-center justify-center">
-                <p className="text-gray-400">No video selected. Add a video to get started!</p>
+              <div style={{ ...sectionStyle, height: '390px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ color: '#999' }}>No video selected. Add a video to get started!</p>
               </div>
             )}
 
-            <div className="mt-6 bg-gray-800 p-4 rounded">
-              <h2 className="text-xl font-bold mb-4">Add New Video</h2>
+            <div style={sectionStyle}>
+              <h2 style={sectionTitleStyle}>Add New Video</h2>
               <VideoInput onAddVideo={handleAddVideo} />
             </div>
           </div>
 
-          <div>
-            <div className="bg-gray-800 p-4 rounded">
-              <h2 className="text-xl font-bold mb-4">Your Playlist</h2>
+          <div style={columnStyle}>
+            <div style={sectionStyle}>
+              <h2 style={sectionTitleStyle}>Your Playlist</h2>
               <Playlist 
                 videos={videos} 
                 currentVideo={currentVideo} 
@@ -173,7 +243,7 @@ function App() {
           </div>
         </div>
 
-        <footer className="mt-12 text-center text-gray-400 text-sm">
+        <footer style={footerStyle}>
           <p>© {new Date().getFullYear()} MisterLooperz - Created by Mike Rhonek</p>
         </footer>
       </div>

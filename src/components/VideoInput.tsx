@@ -32,10 +32,53 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
     setEndTimeInput('');
   };
 
+  const formStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px'
+  };
+
+  const inputGroupStyle: React.CSSProperties = {
+    width: '100%'
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: '8px'
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '10px',
+    backgroundColor: '#444',
+    border: '1px solid #555',
+    borderRadius: '4px',
+    color: 'white'
+  };
+
+  const formGroupStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '20px'
+  };
+
+  const buttonStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px',
+    backgroundColor: '#2b6cb0',
+    color: 'white',
+    fontWeight: 'bold',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="video-url" className="block text-white font-bold mb-2">
+    <form onSubmit={handleSubmit} style={formStyle}>
+      <div style={inputGroupStyle}>
+        <label htmlFor="video-url" style={labelStyle}>
           YouTube URL
         </label>
         <input
@@ -44,13 +87,13 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://www.youtube.com/watch?v=..."
-          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+          style={inputStyle}
         />
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="start-time" className="block text-white font-bold mb-2">
+      <div style={formGroupStyle}>
+        <div style={inputGroupStyle}>
+          <label htmlFor="start-time" style={labelStyle}>
             Start Time (M:SS) - Optional
           </label>
           <input
@@ -59,12 +102,12 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
             value={startTimeInput}
             onChange={(e) => setStartTimeInput(e.target.value)}
             placeholder="0:00"
-            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+            style={inputStyle}
           />
         </div>
         
-        <div>
-          <label htmlFor="end-time" className="block text-white font-bold mb-2">
+        <div style={inputGroupStyle}>
+          <label htmlFor="end-time" style={labelStyle}>
             End Time (M:SS) - Optional
           </label>
           <input
@@ -73,14 +116,14 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
             value={endTimeInput}
             onChange={(e) => setEndTimeInput(e.target.value)}
             placeholder="1:30"
-            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+            style={inputStyle}
           />
         </div>
       </div>
 
       <button
         type="submit"
-        className="w-full py-3 px-4 bg-blue-600 text-white font-bold rounded hover:bg-blue-700"
+        style={buttonStyle}
       >
         Add to Playlist
       </button>
