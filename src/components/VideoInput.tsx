@@ -35,7 +35,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="video-url" className="block text-sm font-medium text-gray-300 mb-1">
+        <label htmlFor="video-url" className="block text-white font-bold mb-2">
           YouTube URL
         </label>
         <input
@@ -44,13 +44,13 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://www.youtube.com/watch?v=..."
-          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white"
         />
       </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="start-time" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="start-time" className="block text-white font-bold mb-2">
             Start Time (M:SS) - Optional
           </label>
           <input
@@ -59,12 +59,12 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
             value={startTimeInput}
             onChange={(e) => setStartTimeInput(e.target.value)}
             placeholder="0:00"
-            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white"
           />
         </div>
         
         <div>
-          <label htmlFor="end-time" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="end-time" className="block text-white font-bold mb-2">
             End Time (M:SS) - Optional
           </label>
           <input
@@ -73,14 +73,14 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
             value={endTimeInput}
             onChange={(e) => setEndTimeInput(e.target.value)}
             placeholder="1:30"
-            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white"
           />
         </div>
       </div>
 
       <button
         type="submit"
-        className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-md hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+        className="w-full py-3 px-4 bg-blue-600 text-white font-bold rounded hover:bg-blue-700"
       >
         Add to Playlist
       </button>

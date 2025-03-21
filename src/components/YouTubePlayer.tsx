@@ -230,83 +230,47 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     }
   };
 
-  // Calculate progress percentage
-  const calculateProgress = () => {
-    if (!playerRef.current) return 0;
-    try {
-      // @ts-ignore
-      const duration = playerRef.current.getDuration();
-      if (!duration) return 0;
-      return (currentTime / duration) * 100;
-    } catch {
-      return 0;
-    }
-  };
-
   return (
-    <div className="w-full rounded-lg overflow-hidden shadow-xl bg-gray-800 border border-gray-700">
-      <div className="relative">
-        <YouTube
-          videoId={videoId}
-          opts={opts}
-          onReady={onPlayerReady}
-          onStateChange={onStateChange}
-          className="w-full"
-        />
-        
-        {/* Progress bar */}
-        <div className="h-1 bg-gray-700 w-full">
-          <div 
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-600"
-            style={{ width: `${calculateProgress()}%` }}
-          ></div>
-        </div>
-      </div>
+    <div className="w-full rounded-lg overflow-hidden bg-gray-800 border border-gray-700">
+      <YouTube
+        videoId={videoId}
+        opts={opts}
+        onReady={onPlayerReady}
+        onStateChange={onStateChange}
+        className="w-full"
+      />
       
-      <div className="px-4 py-3 flex items-center justify-between player-controls">
-        <div className="flex items-center space-x-3">
-          {!isPlaying ? (
-            <button
-              onClick={handlePlay}
-              className="text-white bg-blue-600 hover:bg-blue-700 rounded-full p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-              title="Play"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-              </svg>
-            </button>
-          ) : (
-            <button
-              onClick={handlePause}
-              className="text-white bg-red-600 hover:bg-red-700 rounded-full p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-              title="Pause"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </button>
-          )}
+      <div className="p-4 flex flex-col sm:flex-row items-center justify-between bg-gray-700">
+        <div className="flex items-center space-x-4 mb-2 sm:mb-0">
+          <button
+            onClick={isPlaying ? handlePause : handlePlay}
+            className={`${isPlaying ? 'bg-red-500' : 'bg-blue-500'} text-white font-bold py-2 px-4 rounded`}
+          >
+            {isPlaying ? 'Pause' : 'Play'}
+          </button>
           
           <button
             onClick={handleSeekToStart}
-            className="text-white bg-gray-600 hover:bg-gray-700 rounded-full p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
-            title="Back to Start"
+            className="bg-gray-600 text-white font-bold py-2 px-4 rounded"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L9.414 11H13a1 1 0 100-2H9.414l1.293-1.293z" clipRule="evenodd" />
-            </svg>
+            Back to Start
           </button>
-          
-          <div className="text-sm text-gray-300">
-            {formatTime(currentTime)}
-            {endTime ? ` / ${formatTime(endTime || 0)}` : ''}
-          </div>
         </div>
         
-        <div className="flex items-center text-sm text-gray-400">
-          {startTime !== null && <span>Start: {formatTime(startTime)}</span>}
-          {startTime !== null && endTime !== null && <span className="mx-2">|</span>}
-          {endTime !== null && <span>End: {formatTime(endTime || 0)}</span>}
+        <div className="flex flex-col sm:flex-row items-center text-white text-sm">
+          <div className="mb-2 sm:mb-0 sm:mr-4">
+            Current: {formatTime(currentTime)}
+          </div>
+          {startTime !== null && (
+            <div className="mb-2 sm:mb-0 sm:mr-4">
+              Start: {formatTime(startTime)}
+            </div>
+          )}
+          {endTime !== null && (
+            <div>
+              End: {formatTime(endTime || 0)}
+            </div>
+          )}
         </div>
       </div>
     </div>

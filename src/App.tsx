@@ -120,19 +120,19 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-10">
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600 mb-2 gradient-text">
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto px-4 py-6">
+        <header className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-2">
             MisterLooperz
           </h1>
           <p className="text-gray-300">Loop and play your favorite YouTube videos</p>
         </header>
 
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 flex flex-col items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
             {currentVideo ? (
-              <div className="w-full">
+              <div>
                 <YouTubePlayer 
                   key={playerKey}
                   videoId={currentVideo.videoId} 
@@ -140,28 +140,28 @@ function App() {
                   endTime={currentVideo.endTime}
                   onEnd={handleVideoEnd}
                 />
-                <div className="mt-4 bg-gray-800 rounded-lg p-4 shadow-lg">
-                  <h2 className="text-xl font-semibold mb-2">Now Playing</h2>
+                <div className="mt-4 bg-gray-800 p-4 rounded">
+                  <h2 className="text-xl font-bold mb-2">Now Playing</h2>
                   <p className="text-gray-300 truncate">
                     {currentVideo.url.replace(/^https?:\/\//, '')}
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="w-full h-[390px] bg-gray-800 rounded-lg flex items-center justify-center">
+              <div className="bg-gray-800 h-[390px] rounded flex items-center justify-center">
                 <p className="text-gray-400">No video selected. Add a video to get started!</p>
               </div>
             )}
 
-            <div className="w-full mt-8 bg-gray-800 rounded-lg p-6 shadow-lg">
-              <h2 className="text-xl font-semibold mb-4">Add New Video</h2>
+            <div className="mt-6 bg-gray-800 p-4 rounded">
+              <h2 className="text-xl font-bold mb-4">Add New Video</h2>
               <VideoInput onAddVideo={handleAddVideo} />
             </div>
           </div>
 
-          <div className="lg:col-span-1">
-            <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-              <h2 className="text-xl font-semibold mb-4">Your Playlist</h2>
+          <div>
+            <div className="bg-gray-800 p-4 rounded">
+              <h2 className="text-xl font-bold mb-4">Your Playlist</h2>
               <Playlist 
                 videos={videos} 
                 currentVideo={currentVideo} 
@@ -173,7 +173,7 @@ function App() {
           </div>
         </div>
 
-        <footer className="mt-16 text-center text-gray-400 text-sm">
+        <footer className="mt-12 text-center text-gray-400 text-sm">
           <p>© {new Date().getFullYear()} MisterLooperz - Created by Mike Rhonek</p>
         </footer>
       </div>
