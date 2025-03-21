@@ -8,6 +8,7 @@ interface PlaylistProps {
   onPlayVideo: (video: Video) => void;
   onRemoveVideo: (id: string) => void;
   onTimeChange: (id: string, type: 'startTime' | 'endTime', value: number | null) => void;
+  autoPlayEnabled?: boolean;
 }
 
 const Playlist: React.FC<PlaylistProps> = ({
@@ -15,7 +16,8 @@ const Playlist: React.FC<PlaylistProps> = ({
   currentVideo,
   onPlayVideo,
   onRemoveVideo,
-  onTimeChange
+  onTimeChange,
+  autoPlayEnabled = false
 }) => {
   // State to track input values for each video
   const [inputValues, setInputValues] = useState<Record<string, { start: string; end: string }>>({});
@@ -126,15 +128,35 @@ const Playlist: React.FC<PlaylistProps> = ({
     marginTop: '10px'
   };
 
+  const autoPlayIndicatorStyle: React.CSSProperties = {
+    fontSize: '12px',
+    color: '#4ade80',
+    marginTop: '5px',
+    display: autoPlayEnabled ? 'block' : 'none'
+  };
+
   return (
     <div style={containerStyle}>
-      {videos.map((video) => (
+      {videos.length > 0 && autoPlayEnabled && (
+        <div style={{ marginBottom: '10px', backgroundColor: 'rgba(56, 161, 105, 0.1)', padding: '8px', borderRadius: '4px', border: '1px solid #38a169' }}>
+          <p style={{ color: '#4ade80', fontSize: '14px', margin: 0 }}>
+            Auto Play: ON - Videos will play sequentially
+          </p>
+        </div>
+      )}
+    
+      {videos.map((video, index) => (
         <div
           key={video.id}
           style={videoItemStyle(currentVideo?.id === video.id)}
         >
           <div style={titleStyle}>
             {video.title}
+            {autoPlayEnabled && index > 0 && (
+              <div style={autoPlayIndicatorStyle}>
+                Up next #{index}
+              </div>
+            )}
           </div>
           
           <div style={formGroupStyle}>

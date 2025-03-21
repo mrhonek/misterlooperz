@@ -12,9 +12,12 @@ function App() {
   const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
   const [playerKey, setPlayerKey] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [autoPlayEnabled, setAutoPlayEnabled] = useState(false);
 
   useEffect(() => {
     const savedVideos = localStorage.getItem('videos');
+    const savedAutoPlay = localStorage.getItem('autoPlayEnabled');
+    
     if (savedVideos) {
       try {
         const parsedVideos = JSON.parse(savedVideos);
@@ -27,11 +30,23 @@ function App() {
         localStorage.removeItem('videos');
       }
     }
+    
+    if (savedAutoPlay) {
+      try {
+        setAutoPlayEnabled(JSON.parse(savedAutoPlay));
+      } catch (e) {
+        console.error('Failed to parse auto play setting:', e);
+      }
+    }
   }, []);
 
   useEffect(() => {
     localStorage.setItem('videos', JSON.stringify(videos));
   }, [videos]);
+  
+  useEffect(() => {
+    localStorage.setItem('autoPlayEnabled', JSON.stringify(autoPlayEnabled));
+  }, [autoPlayEnabled]);
 
   const handleAddVideo = async (videoUrl: string, startTime: number | null, endTime: number | null) => {
     // Extract video ID from YouTube URL
@@ -135,16 +150,40 @@ function App() {
   };
 
   const handleVideoEnd = () => {
-    // Move to the next video in the playlist when a video ends
-    if (currentVideo && videos.length > 1) {
-      const currentIndex = videos.findIndex(v => v.id === currentVideo.id);
-      if (currentIndex < videos.length - 1) {
-        handlePlayVideo(videos[currentIndex + 1]);
+    // If auto play is enabled or we're looping a single video
+    if (currentVideo && videos.length > 0) {
+      if (autoPlayEnabled) {
+        // Find the current index and play the next video
+        const currentIndex = videos.findIndex(v => v.id === currentVideo.id);
+        if (currentIndex < videos.length - 1) {
+          // Play next video
+          handlePlayVideo(videos[currentIndex + 1]);
+        } else {
+          // Loop back to first video if at the end
+          handlePlayVideo(videos[0]);
+        }
       } else {
-        // Loop back to the first video if we're at the end of the playlist
-        handlePlayVideo(videos[0]);
+        // Just replay the current video if it's set to loop
+        if (currentVideo.startTime !== null || currentVideo.endTime !== null) {
+          setPlayerKey(prev => prev + 1);
+          setTimeout(() => {
+            const player = document.querySelector('iframe')?.contentWindow;
+            if (player) {
+              try {
+                // @ts-ignore
+                player.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+              } catch (err) {
+                console.error('Failed to replay video:', err);
+              }
+            }
+          }, 300);
+        }
       }
     }
+  };
+
+  const toggleAutoPlay = () => {
+    setAutoPlayEnabled(!autoPlayEnabled);
   };
 
   const appStyle: React.CSSProperties = {
@@ -232,6 +271,35 @@ function App() {
     fontSize: '14px'
   };
 
+  const playlistHeaderStyle: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '15px'
+  };
+
+  const autoPlayToggleStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center'
+  };
+
+  const toggleLabelStyle: React.CSSProperties = {
+    fontSize: '14px',
+    marginRight: '8px',
+    color: '#ccc'
+  };
+
+  const toggleButtonStyle: React.CSSProperties = {
+    backgroundColor: autoPlayEnabled ? '#38a169' : '#4a5568',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    padding: '6px 12px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    cursor: 'pointer'
+  };
+
   return (
     <div style={appStyle}>
       <div style={containerStyle}>
@@ -277,13 +345,25 @@ function App() {
 
           <div style={columnStyle}>
             <div style={sectionStyle}>
-              <h2 style={sectionTitleStyle}>Your Playlist</h2>
+              <div style={playlistHeaderStyle}>
+                <h2 style={sectionTitleStyle}>Your Playlist</h2>
+                <div style={autoPlayToggleStyle}>
+                  <span style={toggleLabelStyle}>Auto Play:</span>
+                  <button 
+                    onClick={toggleAutoPlay} 
+                    style={toggleButtonStyle}
+                  >
+                    {autoPlayEnabled ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+              </div>
               <Playlist 
                 videos={videos} 
                 currentVideo={currentVideo} 
                 onPlayVideo={handlePlayVideo} 
                 onRemoveVideo={handleRemoveVideo}
                 onTimeChange={handleTimeChange}
+                autoPlayEnabled={autoPlayEnabled}
               />
             </div>
           </div>
