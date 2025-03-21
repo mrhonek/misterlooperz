@@ -37,8 +37,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
   // Configure player options
   const opts = {
-    height: '390',
-    width: '640',
+    height: '100%',
+    width: '100%',
     playerVars: {
       autoplay: 0,
       start: effectiveStartTime,
@@ -238,6 +238,20 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     marginBottom: '20px'
   };
 
+  const playerContainerStyle: React.CSSProperties = {
+    width: '100%',
+    position: 'relative',
+    paddingTop: '56.25%' // 16:9 aspect ratio
+  };
+
+  const youtubeContainerStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%'
+  };
+
   const controlsStyle: React.CSSProperties = {
     padding: '10px',
     display: 'flex',
@@ -283,13 +297,18 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
   return (
     <div style={containerStyle}>
-      <YouTube
-        videoId={videoId}
-        opts={opts}
-        onReady={onPlayerReady}
-        onStateChange={onStateChange}
-        style={{ width: '100%' }}
-      />
+      <div style={playerContainerStyle}>
+        <div style={youtubeContainerStyle}>
+          <YouTube
+            videoId={videoId}
+            opts={opts}
+            onReady={onPlayerReady}
+            onStateChange={onStateChange}
+            style={{ width: '100%', height: '100%' }}
+            className="youtube-player"
+          />
+        </div>
+      </div>
       
       <div style={controlsStyle}>
         <div style={buttonRowStyle}>

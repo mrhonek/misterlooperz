@@ -244,7 +244,7 @@ function App() {
         </div>
 
         <footer style={footerStyle}>
-          <p>© {new Date().getFullYear()} MisterLooperz - Created by Mike Rhonek</p>
+          <p>© {new Date().getFullYear()} RHNK Digital LLC</p>
         </footer>
       </div>
     </div>
