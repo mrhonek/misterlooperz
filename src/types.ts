@@ -1,3 +1,6 @@
+/**
+ * Represents a YouTube video in the playlist
+ */
 export interface Video {
   id: string;
   videoId: string;

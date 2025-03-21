@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { parseTimeString, formatTime } from '../utils/timeUtils';
+import { parseTimeString } from '../utils/timeUtils';
 
 interface VideoInputProps {
   onAddVideo: (url: string, startTime: number | null, endTime: number | null) => void;
