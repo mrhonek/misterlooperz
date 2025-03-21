@@ -5,17 +5,19 @@ A web application that allows users to loop specific sections of YouTube videos,
 ## Features
 
 - Embed YouTube videos using the YouTube IFrame Player API
-- Loop specific sections of videos by setting start and end times
-- Create and manage playlists
-- Play videos sequentially or individually
+- Optional video section looping with customizable start and end times
+- Dynamic time input fields with flexible M:SS format
+- Automatic video looping when end time is set
+- Create and manage playlists with individual video controls
+- Play videos sequentially or individually from any point in the playlist
 - Persistent playlist storage using LocalStorage
-- Modern, responsive UI built with React and Tailwind CSS
+- Clean, responsive UI with inline CSS styling
 
 ## Tech Stack
 
 - React.js with TypeScript
 - Vite for build tooling
-- Tailwind CSS for styling
+- Inline CSS for styling
 - YouTube IFrame Player API
 - LocalStorage for data persistence
 
@@ -59,12 +61,16 @@ The built files will be in the `dist` directory.
 ## Usage
 
 1. Enter a YouTube URL in the input field
-2. Optionally set start and end times in MM:SS format
+2. Optionally set start and end times in M:SS format (e.g., "1:30" for 1 minute and 30 seconds)
+   - Leave time fields empty to play the full video
+   - Set only start time to begin from a specific point
+   - Set both times to loop a specific section
 3. Click "Add to Playlist" to add the video
 4. Use the playlist controls to:
-   - Play individual videos
-   - Play through the entire playlist
+   - Play individual videos from the playlist
+   - Modify start and end times for each video
    - Remove videos from the playlist
+   - Videos will automatically loop between start and end times when set
 
 ## Deployment
 
