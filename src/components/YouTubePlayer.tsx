@@ -39,6 +39,30 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const effectiveStartTime = startTime || 0;
   const isMobile = window.innerWidth <= 768;
 
+  // Add CSS to ensure the iframe fills the container
+  useEffect(() => {
+    // Create style element for the YouTube player iframe
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .youtube-player {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
+      }
+      .youtube-player iframe {
+        width: 100% !important;
+        height: 100% !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   // Configure player options - improved for mobile
   const opts = {
     height: '100%',
