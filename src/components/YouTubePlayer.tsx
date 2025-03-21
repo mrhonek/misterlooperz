@@ -301,7 +301,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     overflow: 'hidden',
     position: 'relative',
     marginBottom: '10px',
-    paddingTop: '56.25%', // 16:9 aspect ratio for container
+    paddingBottom: '56.25%', // 16:9 aspect ratio for container (use paddingBottom instead of paddingTop)
+    height: 0, // Important: Set height to 0 for proper aspect ratio
     backgroundColor: '#000'
   };
 
@@ -373,6 +374,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
             onStateChange={onStateChange}
             onError={onPlayerError}
             className="youtube-player"
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
           />
           {playerError && (
             <div style={errorMessageStyle}>
@@ -384,9 +386,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       
       <div style={controlsStyle}>
         <div style={buttonGroupStyle}>
-          <button style={buttonStyle} onClick={handleSeekToStart}>
-            ⏮️ Restart
-          </button>
           {isPlaying ? (
             <button style={{...buttonStyle, backgroundColor: '#e53e3e'}} onClick={handlePause}>
               ⏸️ Pause
@@ -396,6 +395,9 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               ▶️ Play
             </button>
           )}
+          <button style={buttonStyle} onClick={handleSeekToStart}>
+            ⏮️ Restart
+          </button>
         </div>
         <div style={timeDisplayStyle}>
           {formatTime(currentTime)} {endTime ? `/ ${formatTime(endTime)}` : ''}
