@@ -3,9 +3,10 @@ import { parseTimeInput } from '../utils/timeUtils';
 
 interface VideoInputProps {
   onAddVideo: (videoUrl: string, startTime: number | null, endTime: number | null) => void;
+  isLoading?: boolean;
 }
 
-const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
+const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading = false }) => {
   const [url, setUrl] = useState('');
   const [startTimeInput, setStartTimeInput] = useState('');
   const [endTimeInput, setEndTimeInput] = useState('');
@@ -67,12 +68,13 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
   const buttonStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px',
-    backgroundColor: '#2b6cb0',
+    backgroundColor: isLoading ? '#555' : '#2b6cb0',
     color: 'white',
     fontWeight: 'bold',
     border: 'none',
     borderRadius: '4px',
-    cursor: 'pointer'
+    cursor: isLoading ? 'wait' : 'pointer',
+    opacity: isLoading ? 0.7 : 1
   };
 
   return (
@@ -88,6 +90,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://www.youtube.com/watch?v=..."
           style={inputStyle}
+          disabled={isLoading}
         />
       </div>
       
@@ -103,6 +106,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
             onChange={(e) => setStartTimeInput(e.target.value)}
             placeholder="0:00"
             style={inputStyle}
+            disabled={isLoading}
           />
         </div>
         
@@ -117,6 +121,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
             onChange={(e) => setEndTimeInput(e.target.value)}
             placeholder="1:30"
             style={inputStyle}
+            disabled={isLoading}
           />
         </div>
       </div>
@@ -124,8 +129,9 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
       <button
         type="submit"
         style={buttonStyle}
+        disabled={isLoading}
       >
-        Add to Playlist
+        {isLoading ? 'Fetching Video Info...' : 'Add to Playlist'}
       </button>
     </form>
   );

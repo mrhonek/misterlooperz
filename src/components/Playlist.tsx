@@ -54,7 +54,8 @@ const Playlist: React.FC<PlaylistProps> = ({
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    marginBottom: '15px'
+    marginBottom: '15px',
+    fontWeight: 'bold'
   };
 
   const formGroupStyle: React.CSSProperties = {
@@ -133,7 +134,7 @@ const Playlist: React.FC<PlaylistProps> = ({
           style={videoItemStyle(currentVideo?.id === video.id)}
         >
           <div style={titleStyle}>
-            {video.url.replace(/^https?:\/\//, '')}
+            {video.title}
           </div>
           
           <div style={formGroupStyle}>

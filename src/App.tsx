@@ -5,11 +5,13 @@ import YouTubePlayer from './components/YouTubePlayer';
 import VideoInput from './components/VideoInput';
 import Playlist from './components/Playlist';
 import { Video } from './types';
+import { fetchVideoInfo } from './utils/youtubeUtils';
 
 function App() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
   const [playerKey, setPlayerKey] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const savedVideos = localStorage.getItem('videos');
@@ -31,7 +33,7 @@ function App() {
     localStorage.setItem('videos', JSON.stringify(videos));
   }, [videos]);
 
-  const handleAddVideo = (videoUrl: string, startTime: number | null, endTime: number | null) => {
+  const handleAddVideo = async (videoUrl: string, startTime: number | null, endTime: number | null) => {
     // Extract video ID from YouTube URL
     const videoId = extractVideoId(videoUrl);
     if (!videoId) {
@@ -39,17 +41,43 @@ function App() {
       return;
     }
 
-    const newVideo: Video = {
-      id: uuidv4(),
-      videoId,
-      url: videoUrl,
-      startTime,
-      endTime,
-    };
+    setLoading(true);
+    try {
+      // Fetch video info from YouTube
+      const videoInfo = await fetchVideoInfo(videoId);
+      
+      const newVideo: Video = {
+        id: uuidv4(),
+        videoId,
+        url: videoUrl,
+        title: videoInfo.title,
+        startTime,
+        endTime,
+      };
 
-    setVideos([...videos, newVideo]);
-    if (!currentVideo) {
-      setCurrentVideo(newVideo);
+      setVideos(prev => [...prev, newVideo]);
+      if (!currentVideo) {
+        setCurrentVideo(newVideo);
+      }
+    } catch (error) {
+      console.error('Error adding video:', error);
+      
+      // Fallback to adding with unknown title
+      const newVideo: Video = {
+        id: uuidv4(),
+        videoId,
+        url: videoUrl,
+        title: 'Unknown Title',
+        startTime,
+        endTime,
+      };
+
+      setVideos(prev => [...prev, newVideo]);
+      if (!currentVideo) {
+        setCurrentVideo(newVideo);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -231,7 +259,7 @@ function App() {
                 <div style={nowPlayingStyle}>
                   <h2 style={sectionTitleStyle}>Now Playing</h2>
                   <p style={{ color: '#ccc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {currentVideo.url.replace(/^https?:\/\//, '')}
+                    {currentVideo.title}
                   </p>
                 </div>
               </div>
@@ -243,7 +271,7 @@ function App() {
 
             <div style={sectionStyle}>
               <h2 style={sectionTitleStyle}>Add New Video</h2>
-              <VideoInput onAddVideo={handleAddVideo} />
+              <VideoInput onAddVideo={handleAddVideo} isLoading={loading} />
             </div>
           </div>
 
