@@ -398,7 +398,7 @@ function App() {
         </div>
 
         <footer style={footerStyle}>
-          <p>© {new Date().getFullYear()} RHNK Digital LLC</p>
+          <p>© {new Date().getFullYear()} <a href="https://portfolio.rhnkdigital.com/" target="_blank" rel="noopener noreferrer" style={{ color: '#999', textDecoration: 'none' }}>RHNK Digital LLC</a></p>
         </footer>
       </div>
     </div>
