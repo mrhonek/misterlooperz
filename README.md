@@ -6,7 +6,8 @@ A web application that allows users to loop specific sections of YouTube videos,
 
 - Embed YouTube videos using the YouTube IFrame Player API
 - Optional video section looping with customizable start and end times
-- Dynamic time input fields with flexible M:SS format
+- Dynamic time input fields supporting both HH:MM:SS and MM:SS formats
+- Support for longer videos with hour-based timestamps
 - Automatic video looping when end time is set
 - Create and manage playlists with individual video controls
 - Play videos sequentially or individually from any point in the playlist
@@ -61,7 +62,9 @@ The built files will be in the `dist` directory.
 ## Usage
 
 1. Enter a YouTube URL in the input field
-2. Optionally set start and end times in M:SS format (e.g., "1:30" for 1 minute and 30 seconds)
+2. Optionally set start and end times using the following formats:
+   - HH:MM:SS for longer videos (e.g., "1:30:45" for 1 hour, 30 minutes, and 45 seconds)
+   - MM:SS for shorter videos (e.g., "5:30" for 5 minutes and 30 seconds)
    - Leave time fields empty to play the full video
    - Set only start time to begin from a specific point
    - Set both times to loop a specific section

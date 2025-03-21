@@ -104,6 +104,12 @@ const Playlist: React.FC<PlaylistProps> = ({
     minHeight: isMobile ? '44px' : '32px'
   };
 
+  const helpTextStyle: React.CSSProperties = {
+    color: '#718096',
+    fontSize: '12px',
+    marginTop: '2px'
+  };
+
   const buttonGroupStyle: React.CSSProperties = {
     display: 'flex',
     gap: '10px',
@@ -200,6 +206,7 @@ const Playlist: React.FC<PlaylistProps> = ({
                 style={inputStyle}
                 inputMode="numeric"
               />
+              <span style={helpTextStyle}>Format: HH:MM:SS or MM:SS</span>
             </div>
             <div style={inputGroupStyle}>
               <label style={labelStyle}>End Time</label>
@@ -211,6 +218,7 @@ const Playlist: React.FC<PlaylistProps> = ({
                 style={inputStyle}
                 inputMode="numeric"
               />
+              <span style={helpTextStyle}>Format: HH:MM:SS or MM:SS</span>
             </div>
           </div>
           

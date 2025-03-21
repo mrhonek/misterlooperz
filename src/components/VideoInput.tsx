@@ -98,6 +98,12 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
     flex: isMobile ? 'auto' : '1'
   };
 
+  const helpTextStyle: React.CSSProperties = {
+    color: '#718096',
+    fontSize: '12px',
+    marginTop: '2px'
+  };
+
   return (
     <div style={containerStyle}>
       <form onSubmit={handleSubmit} style={formStyle}>
@@ -122,11 +128,12 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
               type="text"
               value={startTimeStr}
               onChange={(e) => setStartTimeStr(e.target.value)}
-              placeholder="0:00"
+              placeholder="0:00" 
               style={timeInputStyle}
               autoComplete="off"
               inputMode="numeric"
             />
+            <span style={helpTextStyle}>Format: HH:MM:SS or MM:SS</span>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -141,6 +148,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
               autoComplete="off"
               inputMode="numeric"
             />
+            <span style={helpTextStyle}>Format: HH:MM:SS or MM:SS</span>
           </div>
         </div>
         
