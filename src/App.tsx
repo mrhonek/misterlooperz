@@ -6,6 +6,7 @@ import VideoInput from './components/VideoInput';
 import Playlist from './components/Playlist';
 import { Video } from './types';
 import { fetchVideoInfo } from './utils/youtubeUtils';
+import { truncateText } from './utils/stringUtils';
 
 function App() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -310,7 +311,7 @@ function App() {
                 <div style={nowPlayingStyle}>
                   <h2 style={sectionTitleStyle}>Now Playing</h2>
                   <p style={{ color: '#ccc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {currentVideo.title}
+                    {truncateText(currentVideo.title, 80)}
                   </p>
                 </div>
               </div>

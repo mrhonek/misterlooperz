@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Video } from '../types';
 import { formatTime, parseTimeInput } from '../utils/timeUtils';
+import { truncateText } from '../utils/stringUtils';
 
 interface PlaylistProps {
   videos: Video[];
@@ -151,7 +152,7 @@ const Playlist: React.FC<PlaylistProps> = ({
           style={videoItemStyle(currentVideo?.id === video.id)}
         >
           <div style={titleStyle}>
-            {video.title}
+            {truncateText(video.title, 60)}
             {autoPlayEnabled && index > 0 && (
               <div style={autoPlayIndicatorStyle}>
                 Up next #{index}
