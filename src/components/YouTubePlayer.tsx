@@ -40,6 +40,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       autoplay: 0,
       start: effectiveStartTime,
       // Don't set the end parameter as we want to handle looping ourselves
+      enablejsapi: 1,
+      origin: window.location.origin
     },
   };
 
@@ -102,6 +104,22 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       }
     };
   }, [endTime, effectiveStartTime, isPlaying]);
+
+  // Effect to auto-play the video when the videoId changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (playerRef.current) {
+        try {
+          // @ts-ignore
+          playerRef.current.playVideo();
+        } catch (err) {
+          console.error('Failed to auto-play new video:', err);
+        }
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [videoId]);
 
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {

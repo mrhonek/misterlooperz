@@ -36,6 +36,17 @@ function App() {
   const handlePlayVideo = (video: Video) => {
     setCurrentVideo(video);
     setPlayerKey(prev => prev + 1);
+    setTimeout(() => {
+      const player = document.querySelector('iframe')?.contentWindow;
+      if (player) {
+        try {
+          // @ts-ignore
+          player.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+        } catch (err) {
+          console.error('Failed to play video after selection:', err);
+        }
+      }
+    }, 300);
   };
 
   const handleUpdateTimes = (id: string, startTime: number | null, endTime: number | null) => {
