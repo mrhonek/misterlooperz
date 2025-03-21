@@ -1,35 +1,55 @@
 import { useState, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import './App.css';
 import YouTubePlayer from './components/YouTubePlayer';
-import Playlist from './components/Playlist';
 import VideoInput from './components/VideoInput';
-
-interface Video {
-  id: string;
-  title: string;
-  startTime: number | null;
-  endTime: number | null;
-}
+import Playlist from './components/Playlist';
+import { Video } from './types';
 
 function App() {
-  const [videos, setVideos] = useState<Video[]>(() => {
-    const savedVideos = localStorage.getItem('playlist');
-    return savedVideos ? JSON.parse(savedVideos) : [];
-  });
+  const [videos, setVideos] = useState<Video[]>([]);
   const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
   const [playerKey, setPlayerKey] = useState(0);
 
   useEffect(() => {
-    localStorage.setItem('playlist', JSON.stringify(videos));
+    const savedVideos = localStorage.getItem('videos');
+    if (savedVideos) {
+      setVideos(JSON.parse(savedVideos));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('videos', JSON.stringify(videos));
   }, [videos]);
 
-  const handleAddVideo = (videoId: string, title: string, startTime: number | null, endTime: number | null) => {
-    setVideos(prev => [...prev, { id: videoId, title, startTime, endTime }]);
+  const handleAddVideo = (videoUrl: string, startTime: number | null, endTime: number | null) => {
+    // Extract video ID from YouTube URL
+    const videoId = extractVideoId(videoUrl);
+    if (!videoId) {
+      alert('Invalid YouTube URL');
+      return;
+    }
+
+    const newVideo: Video = {
+      id: uuidv4(),
+      videoId,
+      url: videoUrl,
+      startTime,
+      endTime,
+    };
+
+    setVideos([...videos, newVideo]);
+    if (!currentVideo) {
+      setCurrentVideo(newVideo);
+    }
   };
 
   const handleRemoveVideo = (id: string) => {
-    setVideos(prev => prev.filter(video => video.id !== id));
-    if (currentVideo?.id === id) {
-      setCurrentVideo(null);
+    const newVideos = videos.filter(video => video.id !== id);
+    setVideos(newVideos);
+
+    if (currentVideo && currentVideo.id === id) {
+      setCurrentVideo(newVideos.length > 0 ? newVideos[0] : null);
     }
   };
 
@@ -49,49 +69,89 @@ function App() {
     }, 300);
   };
 
-  const handleUpdateTimes = (id: string, startTime: number | null, endTime: number | null) => {
-    setVideos(prev => prev.map(video => 
-      video.id === id ? { ...video, startTime, endTime } : video
-    ));
-    if (currentVideo?.id === id) {
-      setCurrentVideo(prev => prev ? { ...prev, startTime, endTime } : null);
+  const handleTimeChange = (id: string, type: 'startTime' | 'endTime', value: number | null) => {
+    const newVideos = videos.map(video => {
+      if (video.id === id) {
+        return { ...video, [type]: value };
+      }
+      return video;
+    });
+    setVideos(newVideos);
+
+    if (currentVideo && currentVideo.id === id) {
+      const updatedVideo = newVideos.find(v => v.id === id);
+      if (updatedVideo) {
+        setCurrentVideo(updatedVideo);
+      }
     }
   };
 
+  const extractVideoId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center mb-8">MisterLooperz</h1>
-        
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <VideoInput onAddVideo={handleAddVideo} />
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
+      <div className="container mx-auto px-4 py-8">
+        <header className="text-center mb-10">
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600 mb-2">
+            MisterLooperz
+          </h1>
+          <p className="text-gray-300">Loop and play your favorite YouTube videos</p>
+        </header>
+
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 flex flex-col items-center">
+            {currentVideo ? (
+              <div className="w-full">
+                <YouTubePlayer 
+                  key={playerKey}
+                  videoId={currentVideo.videoId} 
+                  startTime={currentVideo.startTime} 
+                  endTime={currentVideo.endTime}
+                />
+                <div className="mt-4 bg-gray-800 rounded-lg p-4 shadow-lg">
+                  <h2 className="text-xl font-semibold mb-2">Now Playing</h2>
+                  <p className="text-gray-300 truncate">
+                    {currentVideo.url.replace(/^https?:\/\//, '')}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-[390px] bg-gray-800 rounded-lg flex items-center justify-center">
+                <p className="text-gray-400">No video selected. Add a video to get started!</p>
+              </div>
+            )}
+
+            <div className="w-full mt-8 bg-gray-800 rounded-lg p-6 shadow-lg">
+              <h2 className="text-xl font-semibold mb-4">Add New Video</h2>
+              <VideoInput onAddVideo={handleAddVideo} />
+            </div>
+          </div>
+
+          <div className="lg:col-span-1">
+            <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
+              <h2 className="text-xl font-semibold mb-4">Your Playlist</h2>
+              {videos.length > 0 ? (
+                <Playlist 
+                  videos={videos} 
+                  currentVideo={currentVideo} 
+                  onPlayVideo={handlePlayVideo} 
+                  onRemoveVideo={handleRemoveVideo}
+                  onTimeChange={handleTimeChange}
+                />
+              ) : (
+                <p className="text-gray-400">Your playlist is empty. Add some videos!</p>
+              )}
+            </div>
+          </div>
         </div>
 
-        {currentVideo && (
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <YouTubePlayer
-              key={playerKey}
-              videoId={currentVideo.id}
-              startTime={currentVideo.startTime ?? 0}
-              endTime={currentVideo.endTime ?? undefined}
-              onEnd={() => {
-                const currentIndex = videos.findIndex(v => v.id === currentVideo.id);
-                if (currentIndex < videos.length - 1) {
-                  setCurrentVideo(videos[currentIndex + 1]);
-                } else {
-                  setCurrentVideo(null);
-                }
-              }}
-            />
-          </div>
-        )}
-
-        <Playlist
-          videos={videos}
-          onRemove={handleRemoveVideo}
-          onPlay={handlePlayVideo}
-          onUpdateTimes={handleUpdateTimes}
-        />
+        <footer className="mt-16 text-center text-gray-400 text-sm">
+          <p>© {new Date().getFullYear()} MisterLooperz - Created by Mike Rhonek</p>
+        </footer>
       </div>
     </div>
   );

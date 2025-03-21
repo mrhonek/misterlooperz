@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import YouTube from 'react-youtube';
+import { formatTime } from '../utils/timeUtils';
 
 // Define player state constants to avoid using window.YT directly
 const PLAYER_STATE = {
@@ -29,7 +30,9 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 }) => {
   const playerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeUpdateRef = useRef<NodeJS.Timeout | null>(null);
   const effectiveStartTime = startTime || 0;
 
   // Configure player options
@@ -41,7 +44,9 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       start: effectiveStartTime,
       // Don't set the end parameter as we want to handle looping ourselves
       enablejsapi: 1,
-      origin: window.location.origin
+      origin: window.location.origin,
+      modestbranding: 1,
+      rel: 0,
     },
   };
 
@@ -121,6 +126,34 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     return () => clearTimeout(timer);
   }, [videoId]);
 
+  // Effect to update current time display
+  useEffect(() => {
+    if (timeUpdateRef.current) {
+      clearInterval(timeUpdateRef.current);
+    }
+
+    if (isPlaying) {
+      timeUpdateRef.current = setInterval(() => {
+        try {
+          if (playerRef.current) {
+            // @ts-ignore
+            const time = playerRef.current.getCurrentTime();
+            setCurrentTime(time);
+          }
+        } catch (err) {
+          console.error('Error updating time display:', err);
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (timeUpdateRef.current) {
+        clearInterval(timeUpdateRef.current);
+        timeUpdateRef.current = null;
+      }
+    };
+  }, [isPlaying]);
+
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {
     playerRef.current = event.target;
@@ -185,30 +218,72 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     }
   };
 
+  // Calculate progress percentage
+  const calculateProgress = () => {
+    if (!playerRef.current) return 0;
+    try {
+      // @ts-ignore
+      const duration = playerRef.current.getDuration();
+      if (!duration) return 0;
+      return (currentTime / duration) * 100;
+    } catch {
+      return 0;
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center">
-      <YouTube
-        videoId={videoId}
-        opts={opts}
-        onReady={onPlayerReady}
-        onStateChange={onStateChange}
-        className="rounded-lg shadow-lg"
-      />
-      <div className="mt-4 space-x-4">
-        <button
-          onClick={handlePlay}
-          disabled={isPlaying}
-          className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
-        >
-          Play
-        </button>
-        <button
-          onClick={handlePause}
-          disabled={!isPlaying}
-          className="px-4 py-2 bg-red-500 text-white rounded disabled:bg-gray-400"
-        >
-          Pause
-        </button>
+    <div className="w-full rounded-lg overflow-hidden shadow-xl bg-gray-800 border border-gray-700">
+      <div className="relative">
+        <YouTube
+          videoId={videoId}
+          opts={opts}
+          onReady={onPlayerReady}
+          onStateChange={onStateChange}
+          className="w-full"
+        />
+        
+        {/* Progress bar */}
+        <div className="h-1 bg-gray-700 w-full">
+          <div 
+            className="h-full bg-gradient-to-r from-blue-500 to-purple-600"
+            style={{ width: `${calculateProgress()}%` }}
+          ></div>
+        </div>
+      </div>
+      
+      <div className="px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          {!isPlaying ? (
+            <button
+              onClick={handlePlay}
+              className="text-white bg-blue-600 hover:bg-blue-700 rounded-full p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={handlePause}
+              className="text-white bg-red-600 hover:bg-red-700 rounded-full p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
+          
+          <div className="text-sm text-gray-300">
+            {formatTime(currentTime)}
+            {endTime ? ` / ${formatTime(endTime)}` : ''}
+          </div>
+        </div>
+        
+        <div className="flex items-center text-sm text-gray-400">
+          {startTime !== null && <span>Start: {formatTime(startTime)}</span>}
+          {startTime !== null && endTime !== null && <span className="mx-2">|</span>}
+          {endTime !== null && <span>End: {formatTime(endTime || 0)}</span>}
+        </div>
       </div>
     </div>
   );

@@ -1,71 +1,86 @@
 import React, { useState } from 'react';
+import { formatTime, parseTimeInput } from '../utils/timeUtils';
 
 interface VideoInputProps {
-  onAddVideo: (videoId: string, title: string, startTime: number | null, endTime: number | null) => void;
+  onAddVideo: (videoUrl: string, startTime: number | null, endTime: number | null) => void;
 }
 
 const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo }) => {
   const [url, setUrl] = useState('');
-  const [error, setError] = useState('');
+  const [startTimeInput, setStartTimeInput] = useState('');
+  const [endTimeInput, setEndTimeInput] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    // Extract video ID from URL
-    const videoId = extractVideoId(url);
-    if (!videoId) {
-      setError('Please enter a valid YouTube URL');
+    
+    if (!url) {
+      alert('Please enter a YouTube URL');
       return;
     }
 
-    // For now, we'll use a placeholder title
-    // In a real app, you'd fetch the actual video title from YouTube's API
-    const title = `Video ${videoId}`;
-    // Set times as null initially
-    onAddVideo(videoId, title, null, null);
+    const startTime = startTimeInput ? parseTimeInput(startTimeInput) : null;
+    const endTime = endTimeInput ? parseTimeInput(endTimeInput) : null;
 
-    // Reset form
-    setUrl('');
-  };
-
-  const extractVideoId = (url: string): string | null => {
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?]+)/,
-      /youtube\.com\/embed\/([^&\n?]+)/,
-    ];
-
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) return match[1];
+    if (startTime !== null && endTime !== null && startTime >= endTime) {
+      alert('End time must be after start time');
+      return;
     }
-    return null;
+
+    onAddVideo(url, startTime, endTime);
+    setUrl('');
+    setStartTimeInput('');
+    setEndTimeInput('');
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="url" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="video-url" className="block text-sm font-medium text-gray-300 mb-1">
           YouTube URL
         </label>
         <input
+          id="video-url"
           type="text"
-          id="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://www.youtube.com/watch?v=..."
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          required
+          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
         />
       </div>
-
-      {error && (
-        <div className="text-red-500 text-sm">{error}</div>
-      )}
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="start-time" className="block text-sm font-medium text-gray-300 mb-1">
+            Start Time (M:SS) - Optional
+          </label>
+          <input
+            id="start-time"
+            type="text"
+            value={startTimeInput}
+            onChange={(e) => setStartTimeInput(e.target.value)}
+            placeholder="0:00"
+            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="end-time" className="block text-sm font-medium text-gray-300 mb-1">
+            End Time (M:SS) - Optional
+          </label>
+          <input
+            id="end-time"
+            type="text"
+            value={endTimeInput}
+            onChange={(e) => setEndTimeInput(e.target.value)}
+            placeholder="1:30"
+            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+          />
+        </div>
+      </div>
 
       <button
         type="submit"
-        className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-md hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
       >
         Add to Playlist
       </button>
