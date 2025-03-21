@@ -314,6 +314,14 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     height: '100%',
   };
 
+  const youtubeContainerStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%'
+  };
+
   const controlsStyle: React.CSSProperties = {
     display: 'flex',
     justifyContent: 'space-between',
@@ -367,15 +375,16 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     <div>
       <div style={containerStyle}>
         <div style={playerWrapperStyle}>
-          <YouTube
-            videoId={videoId}
-            opts={opts}
-            onReady={onPlayerReady}
-            onStateChange={onStateChange}
-            onError={onPlayerError}
-            className="youtube-player"
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-          />
+          <div style={youtubeContainerStyle}>
+            <YouTube
+              videoId={videoId}
+              opts={opts}
+              onReady={onPlayerReady}
+              onStateChange={onStateChange}
+              onError={onPlayerError}
+              className="youtube-player"
+            />
+          </div>
           {playerError && (
             <div style={errorMessageStyle}>
               {playerError}. Retrying...
