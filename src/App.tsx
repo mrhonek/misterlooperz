@@ -137,7 +137,16 @@ function App() {
 
   const headerStyle: React.CSSProperties = {
     textAlign: 'center',
-    marginBottom: '30px'
+    marginBottom: '30px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  };
+
+  const logoStyle: React.CSSProperties = {
+    width: '50px',
+    height: '50px',
+    marginRight: '15px'
   };
 
   const titleStyle: React.CSSProperties = {
@@ -193,10 +202,13 @@ function App() {
     <div style={appStyle}>
       <div style={containerStyle}>
         <header style={headerStyle}>
-          <h1 style={titleStyle}>
-            MisterLooperz
-          </h1>
-          <p style={subtitleStyle}>Loop and play your favorite YouTube videos</p>
+          <img src="/images/logo.png" alt="MisterLooperz Logo" style={logoStyle} />
+          <div>
+            <h1 style={titleStyle}>
+              MisterLooperz
+            </h1>
+            <p style={subtitleStyle}>Loop and play your favorite YouTube videos</p>
+          </div>
         </header>
 
         <div style={mainContentStyle}>
