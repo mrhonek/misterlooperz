@@ -30,6 +30,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const playerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const effectiveStartTime = startTime || 0;
 
   // Configure player options
   const opts = {
@@ -37,23 +38,23 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     width: '640',
     playerVars: {
       autoplay: 0,
-      start: startTime || 0,
-      end: endTime || undefined,
+      start: effectiveStartTime,
+      // Don't set the end parameter as we want to handle looping ourselves
     },
   };
 
   // Handle start time changes
   useEffect(() => {
     const player = playerRef.current;
-    if (player && startTime !== null) {
+    if (player) {
       try {
         // @ts-ignore - Ignore TypeScript errors for YouTube API calls
-        player.seekTo(startTime || 0, true);
+        player.seekTo(effectiveStartTime, true);
       } catch (err) {
         console.error('Failed to seek to time:', err);
       }
     }
-  }, [startTime]);
+  }, [effectiveStartTime]);
 
   // Set up the looping interval
   useEffect(() => {
@@ -71,15 +72,26 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           if (player) {
             // @ts-ignore - Ignore TypeScript errors for YouTube API calls
             const currentTime = player.getCurrentTime();
+            
+            // Check if we've reached or passed the end time
             if (currentTime >= endTime) {
               // @ts-ignore - Ignore TypeScript errors for YouTube API calls
-              player.seekTo(startTime || 0, true);
+              player.seekTo(effectiveStartTime, true);
+              // Ensure video continues playing after seeking
+              setTimeout(() => {
+                try {
+                  // @ts-ignore
+                  player.playVideo();
+                } catch (err) {
+                  console.error('Failed to play video after seeking:', err);
+                }
+              }, 100);
             }
           }
         } catch (err) {
           console.error('Error checking video time:', err);
         }
-      }, 1000); // Check every second
+      }, 500); // Check more frequently (every 500ms)
     }
 
     // Cleanup interval on unmount or when dependencies change
@@ -89,7 +101,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         intervalRef.current = null;
       }
     };
-  }, [endTime, startTime, isPlaying]);
+  }, [endTime, effectiveStartTime, isPlaying]);
 
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {
@@ -99,9 +111,29 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const onStateChange = (event: YouTubeEvent) => {
     // Check player state and update isPlaying
     if (event.data === PLAYER_STATE.ENDED) {
-      setIsPlaying(false);
-      if (onEnd) {
-        onEnd();
+      // When video ends naturally, loop back to start time if we have an end time set
+      if (endTime) {
+        try {
+          // @ts-ignore
+          event.target.seekTo(effectiveStartTime, true);
+          // Restart playback after a short delay
+          setTimeout(() => {
+            try {
+              // @ts-ignore
+              event.target.playVideo();
+              setIsPlaying(true);
+            } catch (err) {
+              console.error('Failed to restart video after end:', err);
+            }
+          }, 100);
+        } catch (err) {
+          console.error('Failed to seek to start time after end:', err);
+        }
+      } else {
+        setIsPlaying(false);
+        if (onEnd) {
+          onEnd();
+        }
       }
     } else if (event.data === PLAYER_STATE.PLAYING) {
       setIsPlaying(true);
