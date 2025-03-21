@@ -300,8 +300,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     borderRadius: '5px',
     overflow: 'hidden',
     position: 'relative',
-    marginBottom: '20px',
-    paddingTop: '56.25%', // 16:9 aspect ratio
+    marginBottom: '10px',
+    paddingTop: '56.25%', // 16:9 aspect ratio for container
     backgroundColor: '#000'
   };
 
@@ -319,7 +319,15 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     alignItems: 'center',
     padding: '10px',
     backgroundColor: '#2d3748',
-    borderTop: '1px solid #444'
+    borderRadius: '5px',
+    marginBottom: '20px'
+  };
+
+  const buttonGroupStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: '8px'
   };
 
   const buttonStyle: React.CSSProperties = {
@@ -327,13 +335,13 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     color: 'white',
     border: 'none',
     borderRadius: '4px',
-    padding: '8px 12px',
+    padding: '8px 16px',
     cursor: 'pointer',
     fontSize: '14px',
-    margin: '0 5px',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    minWidth: isMobile ? '80px' : '100px'
   };
 
   const timeDisplayStyle: React.CSSProperties = {
@@ -375,16 +383,16 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       </div>
       
       <div style={controlsStyle}>
-        <div>
+        <div style={buttonGroupStyle}>
           <button style={buttonStyle} onClick={handleSeekToStart}>
             ⏮️ Restart
           </button>
           {isPlaying ? (
-            <button style={buttonStyle} onClick={handlePause}>
+            <button style={{...buttonStyle, backgroundColor: '#e53e3e'}} onClick={handlePause}>
               ⏸️ Pause
             </button>
           ) : (
-            <button style={buttonStyle} onClick={handlePlay}>
+            <button style={{...buttonStyle, backgroundColor: '#38a169'}} onClick={handlePlay}>
               ▶️ Play
             </button>
           )}

@@ -122,9 +122,10 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
               type="text"
               value={startTimeStr}
               onChange={(e) => setStartTimeStr(e.target.value)}
-              placeholder="1:30"
+              placeholder="0:00"
               style={timeInputStyle}
               autoComplete="off"
+              inputMode="numeric"
             />
           </div>
           
@@ -135,9 +136,10 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
               type="text"
               value={endTimeStr}
               onChange={(e) => setEndTimeStr(e.target.value)}
-              placeholder="2:45"
+              placeholder="0:00"
               style={timeInputStyle}
               autoComplete="off"
+              inputMode="numeric"
             />
           </div>
         </div>
