@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { parseTimeInput } from '../utils/timeUtils';
+import { parseTimeString, formatTime } from '../utils/timeUtils';
 
 interface VideoInputProps {
-  onAddVideo: (videoUrl: string, startTime: number | null, endTime: number | null) => void;
-  isLoading?: boolean;
+  onAddVideo: (url: string, startTime: number | null, endTime: number | null) => void;
+  isLoading: boolean;
 }
 
-const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading = false }) => {
+const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
   const [url, setUrl] = useState('');
-  const [startTimeInput, setStartTimeInput] = useState('');
-  const [endTimeInput, setEndTimeInput] = useState('');
+  const [startTimeStr, setStartTimeStr] = useState('');
+  const [endTimeStr, setEndTimeStr] = useState('');
+  const isMobile = window.innerWidth <= 768;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,121 +20,139 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading = false }
       return;
     }
 
-    const startTime = startTimeInput ? parseTimeInput(startTimeInput) : null;
-    const endTime = endTimeInput ? parseTimeInput(endTimeInput) : null;
+    // Parse time strings to seconds
+    const startTime = startTimeStr ? parseTimeString(startTimeStr) : null;
+    const endTime = endTimeStr ? parseTimeString(endTimeStr) : null;
 
-    if (startTime !== null && endTime !== null && startTime >= endTime) {
+    // Validate end time is after start time if both are provided
+    if (startTime !== null && endTime !== null && endTime <= startTime) {
       alert('End time must be after start time');
       return;
     }
 
     onAddVideo(url, startTime, endTime);
+    
+    // Clear the form
     setUrl('');
-    setStartTimeInput('');
-    setEndTimeInput('');
+    setStartTimeStr('');
+    setEndTimeStr('');
+  };
+
+  const containerStyle: React.CSSProperties = {
+    width: '100%'
   };
 
   const formStyle: React.CSSProperties = {
     display: 'flex',
-    flexDirection: 'column',
-    gap: '20px'
-  };
-
-  const inputGroupStyle: React.CSSProperties = {
+    flexDirection: isMobile ? 'column' : 'row',
+    gap: '10px',
     width: '100%'
   };
 
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: '8px'
-  };
-
   const inputStyle: React.CSSProperties = {
-    width: '100%',
     padding: '10px',
-    backgroundColor: '#444',
-    border: '1px solid #555',
+    border: '1px solid #4a5568',
     borderRadius: '4px',
-    color: 'white'
+    backgroundColor: '#2d3748',
+    color: 'white',
+    flex: '1',
+    width: isMobile ? '100%' : 'auto',
+    minHeight: isMobile ? '44px' : '38px',
+    fontSize: isMobile ? '16px' : '14px'
   };
 
-  const formGroupStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '20px'
+  const timeInputContainerStyle: React.CSSProperties = {
+    display: 'flex',
+    gap: '10px',
+    width: isMobile ? '100%' : 'auto',
+    flexDirection: isMobile ? 'column' : 'row'
+  };
+
+  const timeInputStyle: React.CSSProperties = {
+    ...inputStyle,
+    width: isMobile ? '100%' : '120px'
   };
 
   const buttonStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: isLoading ? '#555' : '#2b6cb0',
+    padding: isMobile ? '12px' : '10px',
+    backgroundColor: '#3182ce',
     color: 'white',
-    fontWeight: 'bold',
     border: 'none',
     borderRadius: '4px',
-    cursor: isLoading ? 'wait' : 'pointer',
-    opacity: isLoading ? 0.7 : 1
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    minHeight: isMobile ? '44px' : '38px',
+    fontSize: isMobile ? '16px' : '14px'
+  };
+
+  const labelStyle: React.CSSProperties = {
+    color: '#a0aec0',
+    fontSize: '14px',
+    marginBottom: '4px',
+    display: 'block'
+  };
+
+  const inputGroupStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    flex: isMobile ? 'auto' : '1'
   };
 
   return (
-    <form onSubmit={handleSubmit} style={formStyle}>
-      <div style={inputGroupStyle}>
-        <label htmlFor="video-url" style={labelStyle}>
-          YouTube URL
-        </label>
-        <input
-          id="video-url"
-          type="text"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://www.youtube.com/watch?v=..."
-          style={inputStyle}
-          disabled={isLoading}
-        />
-      </div>
-      
-      <div style={formGroupStyle}>
+    <div style={containerStyle}>
+      <form onSubmit={handleSubmit} style={formStyle}>
         <div style={inputGroupStyle}>
-          <label htmlFor="start-time" style={labelStyle}>
-            Start Time (M:SS) - Optional
-          </label>
+          <label htmlFor="videoUrl" style={labelStyle}>YouTube URL</label>
           <input
-            id="start-time"
+            id="videoUrl"
             type="text"
-            value={startTimeInput}
-            onChange={(e) => setStartTimeInput(e.target.value)}
-            placeholder="0:00"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=..."
             style={inputStyle}
-            disabled={isLoading}
+            autoComplete="off"
           />
         </div>
         
-        <div style={inputGroupStyle}>
-          <label htmlFor="end-time" style={labelStyle}>
-            End Time (M:SS) - Optional
-          </label>
-          <input
-            id="end-time"
-            type="text"
-            value={endTimeInput}
-            onChange={(e) => setEndTimeInput(e.target.value)}
-            placeholder="1:30"
-            style={inputStyle}
-            disabled={isLoading}
-          />
+        <div style={timeInputContainerStyle}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <label htmlFor="startTime" style={labelStyle}>Start Time (optional)</label>
+            <input
+              id="startTime"
+              type="text"
+              value={startTimeStr}
+              onChange={(e) => setStartTimeStr(e.target.value)}
+              placeholder="1:30"
+              style={timeInputStyle}
+              autoComplete="off"
+            />
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <label htmlFor="endTime" style={labelStyle}>End Time (optional)</label>
+            <input
+              id="endTime"
+              type="text"
+              value={endTimeStr}
+              onChange={(e) => setEndTimeStr(e.target.value)}
+              placeholder="2:45"
+              style={timeInputStyle}
+              autoComplete="off"
+            />
+          </div>
         </div>
-      </div>
-
-      <button
-        type="submit"
-        style={buttonStyle}
-        disabled={isLoading}
-      >
-        {isLoading ? 'Fetching Video Info...' : 'Add to Playlist'}
-      </button>
-    </form>
+        
+        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <button 
+            type="submit" 
+            style={buttonStyle}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Adding...' : 'Add to Playlist'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };
 

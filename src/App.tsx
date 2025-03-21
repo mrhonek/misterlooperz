@@ -14,6 +14,7 @@ function App() {
   const [playerKey, setPlayerKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     const savedVideos = localStorage.getItem('videos');
@@ -48,6 +49,18 @@ function App() {
   useEffect(() => {
     localStorage.setItem('autoPlayEnabled', JSON.stringify(autoPlayEnabled));
   }, [autoPlayEnabled]);
+
+  // Add window resize listener to detect mobile/desktop
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const handleAddVideo = async (videoUrl: string, startTime: number | null, endTime: number | null) => {
     // Extract video ID from YouTube URL
@@ -216,8 +229,9 @@ function App() {
   };
 
   const mainContentStyle: React.CSSProperties = {
-    display: 'grid',
+    display: isMobile ? 'flex' : 'grid',
     gridTemplateColumns: '2fr 1fr',
+    flexDirection: isMobile ? 'column' : 'row' as 'column' | 'row',
     gap: '20px',
     width: '100%'
   };
@@ -225,7 +239,8 @@ function App() {
   const columnStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px'
+    gap: '20px',
+    width: '100%'
   };
 
   const sectionStyle: React.CSSProperties = {
@@ -325,32 +340,61 @@ function App() {
               <h2 style={sectionTitleStyle}>Add New Video</h2>
               <VideoInput onAddVideo={handleAddVideo} isLoading={loading} />
             </div>
+            
+            {/* Move playlist here for mobile */}
+            {isMobile && (
+              <div style={sectionStyle}>
+                <div style={playlistHeaderStyle}>
+                  <h2 style={sectionTitleStyle}>Your Playlist</h2>
+                  <div style={autoPlayToggleStyle}>
+                    <span style={toggleLabelStyle}>Auto Play:</span>
+                    <button 
+                      onClick={toggleAutoPlay} 
+                      style={toggleButtonStyle}
+                    >
+                      {autoPlayEnabled ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                </div>
+                <Playlist 
+                  videos={videos} 
+                  currentVideo={currentVideo} 
+                  onPlayVideo={handlePlayVideo} 
+                  onRemoveVideo={handleRemoveVideo}
+                  onTimeChange={handleTimeChange}
+                  autoPlayEnabled={autoPlayEnabled}
+                />
+              </div>
+            )}
           </div>
 
-          <div style={columnStyle}>
-            <div style={sectionStyle}>
-              <div style={playlistHeaderStyle}>
-                <h2 style={sectionTitleStyle}>Your Playlist</h2>
-                <div style={autoPlayToggleStyle}>
-                  <span style={toggleLabelStyle}>Auto Play:</span>
-                  <button 
-                    onClick={toggleAutoPlay} 
-                    style={toggleButtonStyle}
-                  >
-                    {autoPlayEnabled ? 'ON' : 'OFF'}
-                  </button>
+          {/* Only show this column on desktop */}
+          {!isMobile && (
+            <div style={columnStyle}>
+              <div style={sectionStyle}>
+                <div style={playlistHeaderStyle}>
+                  <h2 style={sectionTitleStyle}>Your Playlist</h2>
+                  <div style={autoPlayToggleStyle}>
+                    <span style={toggleLabelStyle}>Auto Play:</span>
+                    <button 
+                      onClick={toggleAutoPlay} 
+                      style={toggleButtonStyle}
+                    >
+                      {autoPlayEnabled ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
                 </div>
+                <Playlist 
+                  videos={videos} 
+                  currentVideo={currentVideo} 
+                  onPlayVideo={handlePlayVideo} 
+                  onRemoveVideo={handleRemoveVideo}
+                  onTimeChange={handleTimeChange}
+                  autoPlayEnabled={autoPlayEnabled}
+                />
               </div>
-              <Playlist 
-                videos={videos} 
-                currentVideo={currentVideo} 
-                onPlayVideo={handlePlayVideo} 
-                onRemoveVideo={handleRemoveVideo}
-                onTimeChange={handleTimeChange}
-                autoPlayEnabled={autoPlayEnabled}
-              />
             </div>
-          </div>
+          )}
         </div>
 
         <footer style={footerStyle}>

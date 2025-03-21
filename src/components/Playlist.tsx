@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Video } from '../types';
 import { formatTime, parseTimeInput } from '../utils/timeUtils';
 import { truncateText } from '../utils/stringUtils';
@@ -22,6 +22,19 @@ const Playlist: React.FC<PlaylistProps> = ({
 }) => {
   // State to track input values for each video
   const [inputValues, setInputValues] = useState<Record<string, { start: string; end: string }>>({});
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Handle time input change
   const handleTimeChange = (videoId: string, type: 'start' | 'end', value: string) => {
@@ -40,7 +53,7 @@ const Playlist: React.FC<PlaylistProps> = ({
   };
 
   const containerStyle: React.CSSProperties = {
-    maxHeight: '60vh',
+    maxHeight: isMobile ? '400px' : '60vh',
     overflowY: 'auto',
     paddingRight: '10px'
   };
@@ -58,13 +71,14 @@ const Playlist: React.FC<PlaylistProps> = ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     marginBottom: '15px',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    fontSize: isMobile ? '16px' : '14px'
   };
 
   const formGroupStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '15px',
+    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+    gap: '10px',
     marginBottom: '15px'
   };
 
@@ -81,37 +95,52 @@ const Playlist: React.FC<PlaylistProps> = ({
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: '5px 10px',
+    padding: isMobile ? '10px' : '5px 10px',
     backgroundColor: '#333',
     border: '1px solid #555',
     borderRadius: '4px',
     color: 'white',
-    fontSize: '14px'
+    fontSize: isMobile ? '16px' : '14px',
+    minHeight: isMobile ? '44px' : '32px'
   };
 
   const buttonGroupStyle: React.CSSProperties = {
     display: 'flex',
-    gap: '10px'
+    gap: '10px',
+    flexWrap: isMobile ? 'wrap' : 'nowrap',
+    justifyContent: isMobile ? 'space-between' : 'flex-start'
   };
 
   const playButtonStyle: React.CSSProperties = {
     backgroundColor: '#3182ce',
     color: 'white',
     fontWeight: 'bold',
-    padding: '8px 16px',
+    padding: isMobile ? '12px 20px' : '8px 16px',
     border: 'none',
     borderRadius: '4px',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    flexGrow: isMobile ? 1 : 0,
+    fontSize: isMobile ? '16px' : '14px',
+    minHeight: isMobile ? '44px' : '36px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   };
 
   const removeButtonStyle: React.CSSProperties = {
     backgroundColor: '#e53e3e',
     color: 'white',
     fontWeight: 'bold',
-    padding: '8px 16px',
+    padding: isMobile ? '12px 20px' : '8px 16px',
     border: 'none',
     borderRadius: '4px',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    flexGrow: isMobile ? 1 : 0,
+    fontSize: isMobile ? '16px' : '14px',
+    minHeight: isMobile ? '44px' : '36px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   };
 
   const emptyPlaylistStyle: React.CSSProperties = {
@@ -152,7 +181,7 @@ const Playlist: React.FC<PlaylistProps> = ({
           style={videoItemStyle(currentVideo?.id === video.id)}
         >
           <div style={titleStyle}>
-            {truncateText(video.title, 60)}
+            {truncateText(video.title, isMobile ? 40 : 60)}
             {autoPlayEnabled && index > 0 && (
               <div style={autoPlayIndicatorStyle}>
                 Up next #{index}
@@ -169,6 +198,7 @@ const Playlist: React.FC<PlaylistProps> = ({
                 onChange={(e) => handleTimeChange(video.id, 'start', e.target.value)}
                 placeholder="0:00"
                 style={inputStyle}
+                inputMode="numeric"
               />
             </div>
             <div style={inputGroupStyle}>
@@ -179,6 +209,7 @@ const Playlist: React.FC<PlaylistProps> = ({
                 onChange={(e) => handleTimeChange(video.id, 'end', e.target.value)}
                 placeholder="0:00"
                 style={inputStyle}
+                inputMode="numeric"
               />
             </div>
           </div>
@@ -188,13 +219,13 @@ const Playlist: React.FC<PlaylistProps> = ({
               onClick={() => onPlayVideo(video)}
               style={playButtonStyle}
             >
-              Play
+              {isMobile ? '▶️ Play' : 'Play'}
             </button>
             <button
               onClick={() => onRemoveVideo(video.id)}
               style={removeButtonStyle}
             >
-              Remove
+              {isMobile ? '🗑️ Remove' : 'Remove'}
             </button>
           </div>
         </div>

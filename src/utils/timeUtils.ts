@@ -41,4 +41,9 @@ export const parseTimeInput = (timeString: string): number | null => {
   }
   
   return null;
-}; 
+};
+
+/**
+ * Alias for parseTimeInput for naming consistency
+ */
+export const parseTimeString = parseTimeInput; 

@@ -33,24 +33,62 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const playerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [playerError, setPlayerError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const timeUpdateRef = useRef<NodeJS.Timeout | null>(null);
   const effectiveStartTime = startTime || 0;
+  const isMobile = window.innerWidth <= 768;
 
-  // Configure player options
+  // Configure player options - improved for mobile
   const opts = {
     height: '100%',
     width: '100%',
     playerVars: {
-      autoplay: 0,
+      autoplay: 1, // Try autoplay by default
+      playsinline: 1, // Essential for iOS
+      controls: 1,
       start: effectiveStartTime,
-      // Don't set the end parameter as we want to handle looping ourselves
       enablejsapi: 1,
       origin: window.location.origin,
       modestbranding: 1,
       rel: 0,
+      fs: 1, // Allow fullscreen
+      mute: isMobile ? 1 : 0, // Start muted on mobile (helps with autoplay)
     },
   };
+
+  // Force player to play when mounted on mobile
+  useEffect(() => {
+    const handlePlay = () => {
+      try {
+        if (playerRef.current) {
+          // @ts-ignore
+          playerRef.current.playVideo();
+          
+          if (isMobile) {
+            // For mobile, try to unmute after starting playback
+            setTimeout(() => {
+              try {
+                // @ts-ignore
+                playerRef.current?.unMute();
+                // @ts-ignore
+                playerRef.current?.setVolume(100);
+              } catch (err) {
+                console.error('Failed to unmute after autoplay:', err);
+              }
+            }, 1000);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to auto-play video:', err);
+      }
+    };
+
+    // Try playing when component mounts
+    const timer = setTimeout(handlePlay, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [videoId, isMobile]);
 
   // Handle start time changes
   useEffect(() => {
@@ -120,22 +158,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     };
   }, [endTime, effectiveStartTime, isPlaying, onEnd, autoPlayEnabled]);
 
-  // Effect to auto-play the video when the videoId changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (playerRef.current) {
-        try {
-          // @ts-ignore
-          playerRef.current.playVideo();
-        } catch (err) {
-          console.error('Failed to auto-play new video:', err);
-        }
-      }
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [videoId]);
-
   // Effect to update current time display
   useEffect(() => {
     if (timeUpdateRef.current) {
@@ -167,6 +189,17 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {
     playerRef.current = event.target;
+    // Clear any previous errors
+    setPlayerError(null);
+    
+    // Force play on mobile devices
+    if (isMobile) {
+      try {
+        event.target.playVideo();
+      } catch (err) {
+        console.error('Failed to play on ready:', err);
+      }
+    }
   };
 
   const onStateChange = (event: YouTubeEvent) => {
@@ -201,6 +234,27 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     } else if (event.data === PLAYER_STATE.PAUSED) {
       setIsPlaying(false);
     }
+  };
+  
+  const onPlayerError = (event: { data: number }) => {
+    // Handle player errors
+    setPlayerError(`Video playback error: ${event.data}`);
+    console.error(`YouTube player error: ${event.data}`);
+    
+    // Retry loading the video after a short delay
+    setTimeout(() => {
+      try {
+        if (playerRef.current) {
+          // @ts-ignore
+          playerRef.current.loadVideoById({
+            videoId: videoId,
+            startSeconds: effectiveStartTime,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to reload video after error:', err);
+      }
+    }, 3000);
   };
 
   // Handlers for play/pause buttons
@@ -245,102 +299,98 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     border: '1px solid #444',
     borderRadius: '5px',
     overflow: 'hidden',
-    marginBottom: '20px'
-  };
-
-  const playerContainerStyle: React.CSSProperties = {
-    width: '100%',
     position: 'relative',
-    paddingTop: '56.25%' // 16:9 aspect ratio
+    marginBottom: '20px',
+    paddingTop: '56.25%', // 16:9 aspect ratio
+    backgroundColor: '#000'
   };
 
-  const youtubeContainerStyle: React.CSSProperties = {
+  const playerWrapperStyle: React.CSSProperties = {
     position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
-    height: '100%'
+    height: '100%',
   };
 
   const controlsStyle: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: '10px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    backgroundColor: '#333',
-    color: 'white'
+    backgroundColor: '#2d3748',
+    borderTop: '1px solid #444'
   };
 
-  const buttonRowStyle: React.CSSProperties = {
-    display: 'flex',
-    gap: '10px',
-    marginBottom: '10px',
-    width: '100%'
-  };
-
-  const playButtonStyle: React.CSSProperties = {
-    backgroundColor: isPlaying ? '#e53e3e' : '#3182ce',
-    color: 'white',
-    fontWeight: 'bold',
-    padding: '8px 16px',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer'
-  };
-
-  const backButtonStyle: React.CSSProperties = {
+  const buttonStyle: React.CSSProperties = {
     backgroundColor: '#4a5568',
     color: 'white',
-    fontWeight: 'bold',
-    padding: '8px 16px',
     border: 'none',
     borderRadius: '4px',
-    cursor: 'pointer'
+    padding: '8px 12px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    margin: '0 5px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   };
 
   const timeDisplayStyle: React.CSSProperties = {
-    fontSize: '14px',
-    marginTop: '5px',
-    display: 'flex',
-    gap: '15px'
+    color: '#ccc',
+    fontSize: '14px'
+  };
+
+  const errorMessageStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    color: 'white',
+    padding: '10px 20px',
+    borderRadius: '5px',
+    zIndex: 10,
+    display: playerError ? 'block' : 'none'
   };
 
   return (
-    <div style={containerStyle}>
-      <div style={playerContainerStyle}>
-        <div style={youtubeContainerStyle}>
+    <div>
+      <div style={containerStyle}>
+        <div style={playerWrapperStyle}>
           <YouTube
             videoId={videoId}
             opts={opts}
             onReady={onPlayerReady}
             onStateChange={onStateChange}
-            style={{ width: '100%', height: '100%' }}
+            onError={onPlayerError}
             className="youtube-player"
           />
+          {playerError && (
+            <div style={errorMessageStyle}>
+              {playerError}. Retrying...
+            </div>
+          )}
         </div>
       </div>
       
       <div style={controlsStyle}>
-        <div style={buttonRowStyle}>
-          <button
-            onClick={isPlaying ? handlePause : handlePlay}
-            style={playButtonStyle}
-          >
-            {isPlaying ? 'Pause' : 'Play'}
+        <div>
+          <button style={buttonStyle} onClick={handleSeekToStart}>
+            ⏮️ Restart
           </button>
-          
-          <button
-            onClick={handleSeekToStart}
-            style={backButtonStyle}
-          >
-            Back to Start
-          </button>
+          {isPlaying ? (
+            <button style={buttonStyle} onClick={handlePause}>
+              ⏸️ Pause
+            </button>
+          ) : (
+            <button style={buttonStyle} onClick={handlePlay}>
+              ▶️ Play
+            </button>
+          )}
         </div>
-        
         <div style={timeDisplayStyle}>
-          <div>Current: {formatTime(currentTime)}</div>
-          {startTime !== null && <div>Start: {formatTime(startTime)}</div>}
-          {endTime !== null && <div>End: {formatTime(endTime || 0)}</div>}
+          {formatTime(currentTime)} {endTime ? `/ ${formatTime(endTime)}` : ''}
         </div>
       </div>
     </div>
