@@ -140,7 +140,7 @@ const Playlist: React.FC<PlaylistProps> = ({
       {videos.length > 0 && autoPlayEnabled && (
         <div style={{ marginBottom: '10px', backgroundColor: 'rgba(56, 161, 105, 0.1)', padding: '8px', borderRadius: '4px', border: '1px solid #38a169' }}>
           <p style={{ color: '#4ade80', fontSize: '14px', margin: 0 }}>
-            Auto Play: ON - Videos will play sequentially
+            Auto Play: ON - Will play from start to end times, then move to the next video
           </p>
         </div>
       )}

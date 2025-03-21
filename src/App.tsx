@@ -150,34 +150,16 @@ function App() {
   };
 
   const handleVideoEnd = () => {
-    // If auto play is enabled or we're looping a single video
+    // If we have a current video and playlist
     if (currentVideo && videos.length > 0) {
-      if (autoPlayEnabled) {
-        // Find the current index and play the next video
-        const currentIndex = videos.findIndex(v => v.id === currentVideo.id);
-        if (currentIndex < videos.length - 1) {
-          // Play next video
-          handlePlayVideo(videos[currentIndex + 1]);
-        } else {
-          // Loop back to first video if at the end
-          handlePlayVideo(videos[0]);
-        }
+      // Always advance to next video when a video ends (either naturally or by reaching end time)
+      const currentIndex = videos.findIndex(v => v.id === currentVideo.id);
+      if (currentIndex < videos.length - 1) {
+        // Play next video
+        handlePlayVideo(videos[currentIndex + 1]);
       } else {
-        // Just replay the current video if it's set to loop
-        if (currentVideo.startTime !== null || currentVideo.endTime !== null) {
-          setPlayerKey(prev => prev + 1);
-          setTimeout(() => {
-            const player = document.querySelector('iframe')?.contentWindow;
-            if (player) {
-              try {
-                // @ts-ignore
-                player.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-              } catch (err) {
-                console.error('Failed to replay video:', err);
-              }
-            }
-          }, 300);
-        }
+        // Loop back to first video if at the end
+        handlePlayVideo(videos[0]);
       }
     }
   };
@@ -323,6 +305,7 @@ function App() {
                   startTime={currentVideo.startTime} 
                   endTime={currentVideo.endTime}
                   onEnd={handleVideoEnd}
+                  autoPlayEnabled={autoPlayEnabled}
                 />
                 <div style={nowPlayingStyle}>
                   <h2 style={sectionTitleStyle}>Now Playing</h2>

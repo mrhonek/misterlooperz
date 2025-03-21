@@ -14,6 +14,7 @@ interface YouTubePlayerProps {
   startTime?: number | null;
   endTime?: number | null;
   onEnd?: () => void;
+  autoPlayEnabled?: boolean;
 }
 
 // Define YouTube event interface
@@ -27,6 +28,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   startTime = 0,
   endTime,
   onEnd,
+  autoPlayEnabled = false
 }) => {
   const playerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -71,7 +73,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       intervalRef.current = null;
     }
 
-    // Only set up the interval if we have an end time and the player is playing
+    // Set up interval if we have an end time and player is playing
     if (endTime && isPlaying) {
       intervalRef.current = setInterval(() => {
         try {
@@ -82,17 +84,25 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
             
             // Check if we've reached or passed the end time
             if (currentTime >= endTime) {
-              // @ts-ignore - Ignore TypeScript errors for YouTube API calls
-              player.seekTo(effectiveStartTime, true);
-              // Ensure video continues playing after seeking
-              setTimeout(() => {
-                try {
-                  // @ts-ignore
-                  player.playVideo();
-                } catch (err) {
-                  console.error('Failed to play video after seeking:', err);
+              if (autoPlayEnabled) {
+                // In auto-play mode, trigger onEnd to go to next video
+                if (onEnd) {
+                  onEnd();
                 }
-              }, 100);
+              } else {
+                // In loop mode, loop back to start time
+                // @ts-ignore - Ignore TypeScript errors for YouTube API calls
+                player.seekTo(effectiveStartTime, true);
+                // Ensure video continues playing after seeking
+                setTimeout(() => {
+                  try {
+                    // @ts-ignore
+                    player.playVideo();
+                  } catch (err) {
+                    console.error('Failed to play video after seeking:', err);
+                  }
+                }, 100);
+              }
             }
           }
         } catch (err) {
@@ -108,7 +118,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         intervalRef.current = null;
       }
     };
-  }, [endTime, effectiveStartTime, isPlaying]);
+  }, [endTime, effectiveStartTime, isPlaying, onEnd, autoPlayEnabled]);
 
   // Effect to auto-play the video when the videoId changes
   useEffect(() => {
