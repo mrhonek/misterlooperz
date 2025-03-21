@@ -137,20 +137,26 @@ function App() {
 
   const headerStyle: React.CSSProperties = {
     textAlign: 'center',
-    marginBottom: '30px',
+    marginBottom: '40px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
   };
 
+  const headerContentStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start'
+  };
+
   const logoStyle: React.CSSProperties = {
-    width: '50px',
-    height: '50px',
-    marginRight: '15px'
+    width: '100px',
+    height: '100px',
+    marginRight: '20px'
   };
 
   const titleStyle: React.CSSProperties = {
-    fontSize: '32px',
+    fontSize: '36px',
     fontWeight: 'bold',
     marginBottom: '10px'
   };
@@ -203,7 +209,7 @@ function App() {
       <div style={containerStyle}>
         <header style={headerStyle}>
           <img src="/images/logo.png" alt="MisterLooperz Logo" style={logoStyle} />
-          <div>
+          <div style={headerContentStyle}>
             <h1 style={titleStyle}>
               MisterLooperz
             </h1>
