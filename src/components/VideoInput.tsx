@@ -79,7 +79,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
 
   const timeInputContainerStyle: React.CSSProperties = {
     display: 'flex',
-    gap: '5px',
+    gap: '1px',
     width: '100%',
     marginBottom: '10px',
     flexDirection: isMobile ? 'column' : 'row'
