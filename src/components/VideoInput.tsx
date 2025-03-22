@@ -79,16 +79,25 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
 
   const timeInputContainerStyle: React.CSSProperties = {
     display: 'flex',
-    gap: '1px',
+    gap: 0,
     width: '100%',
     marginBottom: '10px',
-    flexDirection: isMobile ? 'column' : 'row'
+    flexDirection: isMobile ? 'column' : 'row',
+    justifyContent: 'flex-start'
   };
 
   const timeInputStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    flex: 1
+    width: isMobile ? '100%' : '48%',
+    marginRight: isMobile ? 0 : '4%'
+  };
+  
+  const endTimeInputStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    width: isMobile ? '100%' : '48%',
+    marginLeft: isMobile ? 0 : '-50px'
   };
 
   const labelStyle: React.CSSProperties = {
@@ -144,7 +153,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
             />
           </div>
           
-          <div style={timeInputStyle}>
+          <div style={endTimeInputStyle}>
             <TimeInput 
               label="End Time (optional)"
               value={endTimeStr}
