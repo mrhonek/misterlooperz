@@ -15,6 +15,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [layout, setLayout] = useState(window.innerWidth <= 768 ? 'mobile' : 'desktop');
 
   useEffect(() => {
     const savedVideos = localStorage.getItem('videos');
@@ -50,17 +51,25 @@ function App() {
     localStorage.setItem('autoPlayEnabled', JSON.stringify(autoPlayEnabled));
   }, [autoPlayEnabled]);
 
-  // Add window resize listener to detect mobile/desktop
+  // Add window resize listener to detect mobile/desktop for layout only
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
+      const newIsMobile = window.innerWidth <= 768;
+      
+      // Only update layout-related state to avoid player rerender
+      setLayout(newIsMobile ? 'mobile' : 'desktop');
+      
+      // Update isMobile state only when necessary for other calculations
+      if (isMobile !== newIsMobile) {
+        setIsMobile(newIsMobile);
+      }
     };
 
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [isMobile]);
 
   const handleAddVideo = async (videoUrl: string, startTime: number | null, endTime: number | null) => {
     // Extract video ID from YouTube URL
@@ -229,9 +238,9 @@ function App() {
   };
 
   const mainContentStyle: React.CSSProperties = {
-    display: isMobile ? 'flex' : 'grid',
+    display: layout === 'mobile' ? 'flex' : 'grid',
     gridTemplateColumns: '2fr 1fr',
-    flexDirection: isMobile ? 'column' : 'row' as 'column' | 'row',
+    flexDirection: layout === 'mobile' ? 'column' : 'row' as 'column' | 'row',
     gap: '20px',
     width: '100%'
   };
@@ -298,6 +307,9 @@ function App() {
     cursor: 'pointer'
   };
 
+  // Use layout for style calculations instead of isMobile
+  const isLayoutMobile = layout === 'mobile';
+
   return (
     <div style={appStyle}>
       <div style={containerStyle}>
@@ -316,7 +328,6 @@ function App() {
             {currentVideo ? (
               <div>
                 <YouTubePlayer 
-                  key={playerKey}
                   videoId={currentVideo.videoId} 
                   startTime={currentVideo.startTime} 
                   endTime={currentVideo.endTime}
@@ -342,7 +353,7 @@ function App() {
             </div>
             
             {/* Move playlist here for mobile */}
-            {isMobile && (
+            {layout === 'mobile' && (
               <div style={sectionStyle}>
                 <div style={playlistHeaderStyle}>
                   <h2 style={sectionTitleStyle}>Your Playlist</h2>
@@ -369,7 +380,7 @@ function App() {
           </div>
 
           {/* Only show this column on desktop */}
-          {!isMobile && (
+          {layout === 'desktop' && (
             <div style={columnStyle}>
               <div style={sectionStyle}>
                 <div style={playlistHeaderStyle}>

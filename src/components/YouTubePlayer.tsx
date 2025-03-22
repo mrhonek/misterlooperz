@@ -38,6 +38,12 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const timeUpdateRef = useRef<NodeJS.Timeout | null>(null);
   const effectiveStartTime = startTime || 0;
   const isMobile = window.innerWidth <= 768;
+  
+  // Store player state to preserve during orientation changes
+  const playerStateRef = useRef({
+    currentTime: effectiveStartTime,
+    isPlaying: false
+  });
 
   // Add CSS to ensure the iframe fills the container
   useEffect(() => {
@@ -71,7 +77,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       autoplay: 1, // Try autoplay by default
       playsinline: 1, // Essential for iOS
       controls: 1,
-      start: effectiveStartTime,
+      start: Math.floor(playerStateRef.current.currentTime > 0 ? playerStateRef.current.currentTime : effectiveStartTime),
       enablejsapi: 1,
       origin: window.location.origin,
       modestbranding: 1,
@@ -87,7 +93,12 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       try {
         if (playerRef.current) {
           // @ts-ignore
-          playerRef.current.playVideo();
+          playerRef.current.seekTo(playerStateRef.current.currentTime, true);
+          
+          if (playerStateRef.current.isPlaying) {
+            // @ts-ignore
+            playerRef.current.playVideo();
+          }
           
           if (isMobile) {
             // For mobile, try to unmute after starting playback
@@ -113,6 +124,12 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     
     return () => clearTimeout(timer);
   }, [videoId, isMobile]);
+
+  // Update player state ref whenever currentTime or isPlaying changes
+  useEffect(() => {
+    playerStateRef.current.currentTime = currentTime;
+    playerStateRef.current.isPlaying = isPlaying;
+  }, [currentTime, isPlaying]);
 
   // Handle start time changes
   useEffect(() => {
@@ -216,13 +233,21 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     // Clear any previous errors
     setPlayerError(null);
     
-    // Force play on mobile devices
-    if (isMobile) {
-      try {
-        event.target.playVideo();
-      } catch (err) {
-        console.error('Failed to play on ready:', err);
+    // Restore player state from the last orientation change
+    try {
+      // Seek to the stored time
+      if (playerStateRef.current.currentTime > 0) {
+        event.target.seekTo(playerStateRef.current.currentTime, true);
       }
+      
+      // Restore play state
+      if (playerStateRef.current.isPlaying) {
+        event.target.playVideo();
+      } else {
+        event.target.pauseVideo();
+      }
+    } catch (err) {
+      console.error('Failed to restore player state:', err);
     }
   };
 
