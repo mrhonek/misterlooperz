@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import './App.css';
 import YouTubePlayer from './components/YouTubePlayer';
@@ -13,8 +13,10 @@ function App() {
   const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(false);
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [layout, setLayout] = useState(window.innerWidth <= 768 ? 'mobile' : 'desktop');
+  
+  // Use a ref for isMobile state to avoid causing unnecessary player re-renders
+  const isMobileRef = useRef(window.innerWidth <= 768);
 
   useEffect(() => {
     const savedVideos = localStorage.getItem('videos');
@@ -50,25 +52,25 @@ function App() {
     localStorage.setItem('autoPlayEnabled', JSON.stringify(autoPlayEnabled));
   }, [autoPlayEnabled]);
 
-  // Add window resize listener to detect mobile/desktop for layout only
+  // Add window resize listener to handle layout changes
   useEffect(() => {
     const handleResize = () => {
       const newIsMobile = window.innerWidth <= 768;
       
-      // Only update layout-related state to avoid player rerender
+      // Only update layout state (which affects rendering)
+      // This won't cause the YouTube player to re-render
       setLayout(newIsMobile ? 'mobile' : 'desktop');
       
-      // Update isMobile state only when necessary for other calculations
-      if (isMobile !== newIsMobile) {
-        setIsMobile(newIsMobile);
-      }
+      // Update the ref value (doesn't trigger re-renders)
+      isMobileRef.current = newIsMobile;
     };
 
     window.addEventListener('resize', handleResize);
+    
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [isMobile]);
+  }, []);
 
   const handleAddVideo = async (videoUrl: string, startTime: number | null, endTime: number | null) => {
     // Extract video ID from YouTube URL

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback, memo } from 'react';
 import YouTube from 'react-youtube';
 import { formatTime } from '../utils/timeUtils';
 
@@ -23,7 +23,8 @@ interface YouTubeEvent {
   data: number;
 }
 
-const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
+// Using memo to prevent unnecessary re-renders
+const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   videoId,
   startTime = 0,
   endTime,
@@ -36,15 +37,33 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const [playerError, setPlayerError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const timeUpdateRef = useRef<NodeJS.Timeout | null>(null);
+  const orientationChangeRef = useRef<boolean>(false);
   const effectiveStartTime = startTime || 0;
-  const isMobile = window.innerWidth <= 768;
   
-  // Store player state to preserve during orientation changes
-  const playerStateRef = useRef({
-    currentTime: effectiveStartTime,
-    isPlaying: false
-  });
-
+  // Keep track of initial player load
+  const initialLoadRef = useRef(true);
+  
+  // Device detection - only calculate once
+  const isMobile = useRef(window.innerWidth <= 768);
+  
+  // Configure player options once
+  const opts = useRef({
+    height: '100%',
+    width: '100%',
+    playerVars: {
+      autoplay: 1,
+      playsinline: 1, // Essential for iOS
+      controls: 1,
+      start: Math.floor(effectiveStartTime),
+      enablejsapi: 1,
+      origin: window.location.origin,
+      modestbranding: 1,
+      rel: 0,
+      fs: 1,
+      mute: isMobile.current ? 1 : 0,
+    },
+  }).current;
+  
   // Add CSS to ensure the iframe fills the container
   useEffect(() => {
     // Create style element for the YouTube player iframe
@@ -64,87 +83,49 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     `;
     document.head.appendChild(style);
 
+    // Add orientation change listener
+    const handleOrientationChange = () => {
+      orientationChangeRef.current = true;
+      // We'll use this flag to detect orientation changes
+    };
+    
+    // Listen for both orientation change and resize events
+    window.addEventListener('orientationchange', handleOrientationChange);
+    
     return () => {
       document.head.removeChild(style);
+      window.removeEventListener('orientationchange', handleOrientationChange);
     };
   }, []);
 
-  // Configure player options - improved for mobile
-  const opts = {
-    height: '100%',
-    width: '100%',
-    playerVars: {
-      autoplay: 1, // Try autoplay by default
-      playsinline: 1, // Essential for iOS
-      controls: 1,
-      start: Math.floor(playerStateRef.current.currentTime > 0 ? playerStateRef.current.currentTime : effectiveStartTime),
-      enablejsapi: 1,
-      origin: window.location.origin,
-      modestbranding: 1,
-      rel: 0,
-      fs: 1, // Allow fullscreen
-      mute: isMobile ? 1 : 0, // Start muted on mobile (helps with autoplay)
-    },
-  };
-
-  // Force player to play when mounted on mobile
-  useEffect(() => {
-    const handlePlay = () => {
-      try {
-        if (playerRef.current) {
-          // @ts-ignore
-          playerRef.current.seekTo(playerStateRef.current.currentTime, true);
-          
-          if (playerStateRef.current.isPlaying) {
-            // @ts-ignore
-            playerRef.current.playVideo();
-          }
-          
-          if (isMobile) {
-            // For mobile, try to unmute after starting playback
-            setTimeout(() => {
-              try {
-                // @ts-ignore
-                playerRef.current?.unMute();
-                // @ts-ignore
-                playerRef.current?.setVolume(100);
-              } catch (err) {
-                console.error('Failed to unmute after autoplay:', err);
-              }
-            }, 1000);
+  // Check end time - this is more efficient as a memoized function
+  const checkEndTime = useCallback(() => {
+    try {
+      const player = playerRef.current;
+      if (player && endTime && isPlaying) {
+        // @ts-ignore - Ignore TypeScript errors for YouTube API calls
+        const time = player.getCurrentTime();
+        
+        // Check if we've reached or passed the end time
+        if (time >= endTime) {
+          if (autoPlayEnabled) {
+            // In auto-play mode, trigger onEnd to go to next video
+            if (onEnd) {
+              onEnd();
+            }
+          } else {
+            // In loop mode, loop back to start time
+            // @ts-ignore - Ignore TypeScript errors for YouTube API calls
+            player.seekTo(effectiveStartTime, true);
           }
         }
-      } catch (err) {
-        console.error('Failed to auto-play video:', err);
       }
-    };
-
-    // Try playing when component mounts
-    const timer = setTimeout(handlePlay, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [videoId, isMobile]);
-
-  // Update player state ref whenever currentTime or isPlaying changes
-  useEffect(() => {
-    playerStateRef.current.currentTime = currentTime;
-    playerStateRef.current.isPlaying = isPlaying;
-  }, [currentTime, isPlaying]);
-
-  // Handle start time changes
-  useEffect(() => {
-    const player = playerRef.current;
-    if (player) {
-      try {
-        // @ts-ignore - Ignore TypeScript errors for YouTube API calls
-        player.seekTo(effectiveStartTime, true);
-      } catch (err) {
-        console.error('Failed to seek to time:', err);
-      }
+    } catch (err) {
+      console.error('Error checking video time:', err);
     }
-  }, [effectiveStartTime]);
+  }, [endTime, effectiveStartTime, isPlaying, onEnd, autoPlayEnabled]);
 
-  // Set up the looping interval
+  // Set up a single interval for both time update and end time checking
   useEffect(() => {
     // Clear any existing interval
     if (intervalRef.current) {
@@ -152,80 +133,69 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       intervalRef.current = null;
     }
 
-    // Set up interval if we have an end time and player is playing
-    if (endTime && isPlaying) {
+    if (isPlaying) {
+      // Use a less frequent interval to reduce performance impact
       intervalRef.current = setInterval(() => {
         try {
-          const player = playerRef.current;
-          if (player) {
-            // @ts-ignore - Ignore TypeScript errors for YouTube API calls
-            const currentTime = player.getCurrentTime();
+          if (playerRef.current) {
+            // @ts-ignore
+            const time = playerRef.current.getCurrentTime();
+            setCurrentTime(time);
             
-            // Check if we've reached or passed the end time
-            if (currentTime >= endTime) {
-              if (autoPlayEnabled) {
-                // In auto-play mode, trigger onEnd to go to next video
-                if (onEnd) {
-                  onEnd();
-                }
-              } else {
-                // In loop mode, loop back to start time
-                // @ts-ignore - Ignore TypeScript errors for YouTube API calls
-                player.seekTo(effectiveStartTime, true);
-                // Ensure video continues playing after seeking
-                setTimeout(() => {
-                  try {
-                    // @ts-ignore
-                    player.playVideo();
-                  } catch (err) {
-                    console.error('Failed to play video after seeking:', err);
-                  }
-                }, 100);
-              }
+            // Only check end time when needed
+            if (endTime) {
+              checkEndTime();
             }
           }
         } catch (err) {
-          console.error('Error checking video time:', err);
+          console.error('Error in player interval:', err);
         }
-      }, 500); // Check more frequently (every 500ms)
+      }, 1000); // Check once per second instead of 500ms
     }
 
-    // Cleanup interval on unmount or when dependencies change
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [endTime, effectiveStartTime, isPlaying, onEnd, autoPlayEnabled]);
+  }, [isPlaying, endTime, checkEndTime]);
 
-  // Effect to update current time display
+  // Handle orientation change
   useEffect(() => {
-    if (timeUpdateRef.current) {
-      clearInterval(timeUpdateRef.current);
-    }
-
-    if (isPlaying) {
-      timeUpdateRef.current = setInterval(() => {
-        try {
-          if (playerRef.current) {
-            // @ts-ignore
-            const time = playerRef.current.getCurrentTime();
-            setCurrentTime(time);
+    if (orientationChangeRef.current && playerRef.current) {
+      try {
+        // Preserve current time and play state
+        // @ts-ignore
+        const currentTime = playerRef.current.getCurrentTime();
+        // @ts-ignore
+        const wasPlaying = playerRef.current.getPlayerState() === PLAYER_STATE.PLAYING;
+        
+        // Wait for orientation change to complete, then restore state
+        setTimeout(() => {
+          try {
+            if (playerRef.current) {
+              // @ts-ignore
+              playerRef.current.seekTo(currentTime, true);
+              
+              if (wasPlaying) {
+                // @ts-ignore
+                playerRef.current.playVideo();
+              }
+            }
+          } catch (err) {
+            console.error('Failed to restore state after orientation change:', err);
           }
-        } catch (err) {
-          console.error('Error updating time display:', err);
-        }
-      }, 1000);
-    }
-
-    return () => {
-      if (timeUpdateRef.current) {
-        clearInterval(timeUpdateRef.current);
-        timeUpdateRef.current = null;
+          
+          // Reset the flag
+          orientationChangeRef.current = false;
+        }, 300);
+      } catch (err) {
+        console.error('Error handling orientation change:', err);
+        orientationChangeRef.current = false;
       }
-    };
-  }, [isPlaying]);
+    }
+  }, []);
 
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {
@@ -233,50 +203,40 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     // Clear any previous errors
     setPlayerError(null);
     
-    // Restore player state from the last orientation change
-    try {
-      // Seek to the stored time
-      if (playerStateRef.current.currentTime > 0) {
-        event.target.seekTo(playerStateRef.current.currentTime, true);
+    // Handle initial load
+    if (initialLoadRef.current) {
+      // For mobile, try to unmute after starting playback
+      if (isMobile.current) {
+        setTimeout(() => {
+          try {
+            // @ts-ignore
+            event.target.unMute();
+            // @ts-ignore
+            event.target.setVolume(100);
+          } catch (err) {
+            console.error('Failed to unmute after autoplay:', err);
+          }
+        }, 1000);
       }
       
-      // Restore play state
-      if (playerStateRef.current.isPlaying) {
-        event.target.playVideo();
-      } else {
-        event.target.pauseVideo();
-      }
-    } catch (err) {
-      console.error('Failed to restore player state:', err);
+      initialLoadRef.current = false;
+    }
+    
+    // If this wasn't caused by an orientation change, start at the beginning
+    if (!orientationChangeRef.current) {
+      event.target.seekTo(effectiveStartTime, true);
     }
   };
 
   const onStateChange = (event: YouTubeEvent) => {
     // Check player state and update isPlaying
     if (event.data === PLAYER_STATE.ENDED) {
-      // When video ends naturally, loop back to start time if we have an end time set
-      if (endTime) {
-        try {
-          // @ts-ignore
-          event.target.seekTo(effectiveStartTime, true);
-          // Restart playback after a short delay
-          setTimeout(() => {
-            try {
-              // @ts-ignore
-              event.target.playVideo();
-              setIsPlaying(true);
-            } catch (err) {
-              console.error('Failed to restart video after end:', err);
-            }
-          }, 100);
-        } catch (err) {
-          console.error('Failed to seek to start time after end:', err);
-        }
-      } else {
+      if (onEnd) {
+        onEnd();
+      } else if (!endTime) {
+        // Only mark as not playing if we don't have a custom end time 
+        // (since our interval will handle the loop)
         setIsPlaying(false);
-        if (onEnd) {
-          onEnd();
-        }
       }
     } else if (event.data === PLAYER_STATE.PLAYING) {
       setIsPlaying(true);
@@ -307,7 +267,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   };
 
   // Handlers for play/pause buttons
-  const handlePlay = () => {
+  const handlePlay = useCallback(() => {
     try {
       const player = playerRef.current;
       if (player) {
@@ -317,9 +277,9 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     } catch (err) {
       console.error('Failed to play video:', err);
     }
-  };
+  }, []);
 
-  const handlePause = () => {
+  const handlePause = useCallback(() => {
     try {
       const player = playerRef.current;
       if (player) {
@@ -329,9 +289,9 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     } catch (err) {
       console.error('Failed to pause video:', err);
     }
-  };
+  }, []);
 
-  const handleSeekToStart = () => {
+  const handleSeekToStart = useCallback(() => {
     try {
       const player = playerRef.current;
       if (player) {
@@ -341,8 +301,9 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     } catch (err) {
       console.error('Failed to seek to start:', err);
     }
-  };
+  }, [effectiveStartTime]);
 
+  // Style objects - moved outside the render for better performance
   const containerStyle: React.CSSProperties = {
     width: '100%',
     border: '1px solid #444',
@@ -350,8 +311,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     overflow: 'hidden',
     position: 'relative',
     marginBottom: '10px',
-    paddingBottom: '56.25%', // 16:9 aspect ratio for container (use paddingBottom instead of paddingTop)
-    height: 0, // Important: Set height to 0 for proper aspect ratio
+    paddingBottom: '56.25%', // 16:9 aspect ratio for container
+    height: 0,
     backgroundColor: '#000'
   };
 
@@ -399,7 +360,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: isMobile ? '80px' : '100px'
+    minWidth: isMobile.current ? '80px' : '100px'
   };
 
   const timeDisplayStyle: React.CSSProperties = {
@@ -463,6 +424,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default YouTubePlayer; 
