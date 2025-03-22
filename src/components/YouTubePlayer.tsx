@@ -38,16 +38,14 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const effectiveStartTime = startTime || 0;
   
-  // Log prop changes for debugging
-  useEffect(() => {
-    console.log('YouTubePlayer - Props updated:', { 
-      videoId, 
-      startTime, 
-      effectiveStartTime,
-      endTime, 
-      autoPlayEnabled 
-    });
-  }, [videoId, startTime, effectiveStartTime, endTime, autoPlayEnabled]);
+  // Added debug logs
+  console.log('YouTubePlayer rendering with props:', {
+    videoId,
+    startTime,
+    effectiveStartTime,
+    endTime,
+    autoPlayEnabled
+  });
   
   // Store player state for orientation changes
   const playerStateRef = useRef({
@@ -96,8 +94,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     };
   }, []);
   
-  // Configure player options once - but now have the start time be dynamic based on props
-  const opts = useRef({
+  // Configure player options
+  const opts = {
     height: '100%',
     width: '100%',
     playerVars: {
@@ -112,7 +110,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
       fs: 1,
       mute: isMobile.current ? 1 : 0,
     },
-  }).current;
+  };
   
   // Add CSS to ensure the iframe fills the container
   useEffect(() => {
@@ -146,30 +144,26 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
       return;
     }
     
-    // We want to force reload the video when videoId or startTime changes to ensure YouTube honors the start time
-    const shouldReload = typeof effectiveStartTime === 'number';
+    console.log('YouTubePlayer - Start time changed to:', effectiveStartTime);
     
-    if (shouldReload) {
-      try {
-        console.log('YouTubePlayer - Force reloading video with start time:', effectiveStartTime);
-        
-        // Reload the video with the proper start time
-        if (playerRef.current && 'loadVideoById' in playerRef.current) {
-          // @ts-ignore
-          playerRef.current.loadVideoById({
-            videoId: videoId,
-            startSeconds: effectiveStartTime
-          });
-        } else {
-          // Fallback to seek if loadVideoById is not available
-          // @ts-ignore
-          playerRef.current.seekTo(effectiveStartTime, true);
-        }
-      } catch (err) {
-        console.error('Failed to reload video with new start time:', err);
+    try {
+      // Force reload the video to respect start time - this is the most reliable way
+      if (playerRef.current && 'loadVideoById' in playerRef.current) {
+        console.log('YouTubePlayer - Reloading video with start time:', effectiveStartTime);
+        // @ts-ignore
+        playerRef.current.loadVideoById({
+          videoId: videoId,
+          startSeconds: effectiveStartTime
+        });
+      } else {
+        // @ts-ignore
+        playerRef.current.seekTo(effectiveStartTime, true);
+        console.log('YouTubePlayer - Fallback: seekTo used instead of reload');
       }
+    } catch (err) {
+      console.error('YouTubePlayer - Error handling start time change:', err);
     }
-  }, [effectiveStartTime, videoId]);
+  }, [videoId, effectiveStartTime]); // React to both videoId and effectiveStartTime changes
   
   // Also update when endTime changes
   useEffect(() => {

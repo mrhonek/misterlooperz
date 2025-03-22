@@ -54,93 +54,83 @@ const TimeInput: React.FC<TimeInputProps> = ({
     }
   }, [value]);
   
-  // Helper to ensure values are within valid ranges
-  const validateAndFormat = (value: string, max: number): string => {
-    if (!value) return '';
+  // Helper to ensure values are within valid ranges and pure numbers
+  const validateInput = (input: string, max: number): string => {
+    // Allow empty input
+    if (!input) return '';
     
-    // First, remove any non-numeric characters
-    const numericValue = value.replace(/[^0-9]/g, '');
+    // Remove non-numeric characters
+    const numericOnly = input.replace(/\D/g, '');
     
-    // If empty after filtering, return empty
-    if (!numericValue) return '';
+    // If empty after filtering, return empty string
+    if (!numericOnly) return '';
     
-    // Always preserve the user's input as-is as long as it's numeric and within max value
-    const num = parseInt(numericValue, 10);
-    
-    // If the input exceeds max value, cap it
+    // Parse number and cap at max value
+    const num = parseInt(numericOnly, 10);
     if (num > max) return max.toString();
     
-    // Otherwise, return exactly what the user entered
-    // This preserves single and double digits exactly as typed
-    return numericValue.slice(0, 2); // Limit to 2 digits max
+    // Return as-is with max 2 digits
+    return numericOnly.slice(0, 2);
+  };
+  
+  // Generate the time string from individual fields
+  const generateTimeString = (h: string, m: string, s: string): string => {
+    // If all fields are empty, return empty string
+    if (!h && !m && !s) return '';
+    
+    // For seconds-only format (no hours or minutes)
+    if (!h && !m && s) {
+      return s;
+    }
+    
+    // For MM:SS format (no hours)
+    if (!h && (m || s)) {
+      // Always include both minutes and seconds with proper formatting
+      return `${m || '0'}:${s.padStart(2, '0')}`;
+    }
+    
+    // For HH:MM:SS format
+    if (h) {
+      return `${h}:${m.padStart(2, '0')}:${s.padStart(2, '0')}`;
+    }
+    
+    // Fallback (shouldn't reach here)
+    return '';
   };
   
   // Handle field changes
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    const newHours = validateAndFormat(newValue, 99);
+    const newHours = validateInput(e.target.value, 99);
     setHours(newHours);
-    updateTime(newHours, minutes, seconds);
     
-    // Auto-advance if user enters a double-digit number
-    if (newValue.length >= 2 && document.getElementById(minutesId)) {
+    const timeString = generateTimeString(newHours, minutes, seconds);
+    onChange(timeString);
+    
+    // Auto-advance if user enters 2 digits
+    if (newHours.length === 2) {
       document.getElementById(minutesId)?.focus();
     }
   };
   
   const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    const newMinutes = validateAndFormat(newValue, 59);
+    const newMinutes = validateInput(e.target.value, 59);
     setMinutes(newMinutes);
-    updateTime(hours, newMinutes, seconds);
     
-    // Auto-advance if user enters a double-digit number
-    if (newValue.length >= 2 && document.getElementById(secondsId)) {
+    const timeString = generateTimeString(hours, newMinutes, seconds);
+    onChange(timeString);
+    
+    // Auto-advance if user enters 2 digits
+    if (newMinutes.length === 2) {
       document.getElementById(secondsId)?.focus();
     }
   };
   
   const handleSecondsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    const newSeconds = validateAndFormat(newValue, 59);
+    const newSeconds = validateInput(e.target.value, 59);
     setSeconds(newSeconds);
-    updateTime(hours, minutes, newSeconds);
-  };
-  
-  // Combine the fields and update the parent with a consistent format
-  const updateTime = (h: string, m: string, s: string) => {
-    // If we have nothing, return an empty string
-    if (!h && !m && !s) {
-      onChange('');
-      return;
-    }
-
-    // If we only have seconds, pass it directly as seconds
-    if (!h && !m && s) {
-      console.log('TimeInput setting seconds-only value:', s);
-      onChange(s);
-      return;
-    }
     
-    // Format minutes and seconds with leading zeros if needed
-    const formattedMinutes = m.padStart(2, '0');
-    const formattedSeconds = s.padStart(2, '0');
-    
-    // If we have hours, use HH:MM:SS format
-    if (h) {
-      const timeStr = `${h}:${formattedMinutes}:${formattedSeconds}`;
-      console.log('TimeInput setting HH:MM:SS value:', timeStr);
-      onChange(timeStr);
-      return;
-    }
-    
-    // Otherwise, use MM:SS format
-    if (m || s) {
-      const timeStr = `${m || '0'}:${formattedSeconds}`;
-      console.log('TimeInput setting MM:SS value:', timeStr);
-      onChange(timeStr);
-      return;
-    }
+    const timeString = generateTimeString(hours, minutes, newSeconds);
+    onChange(timeString);
   };
   
   // Handle input focus to manage navigation between fields

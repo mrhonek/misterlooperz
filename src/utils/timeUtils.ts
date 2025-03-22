@@ -35,48 +35,38 @@ export const parseTimeInput = (timeString: string): number | null => {
   const parts = normalizedTimeString.split(':');
   console.log('Split into parts:', parts);
   
-  // Handle HH:MM:SS format
-  if (parts.length === 3) {
-    const hours = parseInt(parts[0], 10);
-    const minutes = parseInt(parts[1], 10);
-    const seconds = parseInt(parts[2], 10);
+  // Handle seconds-only format (single number)
+  if (parts.length === 1) {
+    // Make sure we're dealing with a clean number
+    const trimmedPart = parts[0].trim();
+    const seconds = parseInt(trimmedPart, 10);
+    console.log('Parsed as direct seconds:', seconds);
     
-    console.log('Parsed as HH:MM:SS:', { hours, minutes, seconds });
-    
-    // Validate parts are numbers
-    if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
-      console.warn('Invalid time format (NaN values):', parts);
+    if (isNaN(seconds)) {
+      console.warn('Invalid direct seconds (NaN value):', parts[0]);
       return null;
     }
     
-    // Validate minutes and seconds are in valid range
-    if (minutes < 0 || minutes >= 60 || seconds < 0 || seconds >= 60) {
-      console.warn('Invalid time values (out of range):', {hours, minutes, seconds});
-      return null;
-    }
-    
-    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-    console.log('Parsed HH:MM:SS format to seconds:', totalSeconds);
-    return totalSeconds;
+    console.log('Using direct seconds value:', seconds);
+    return seconds;
   }
   
   // Handle MM:SS format
   if (parts.length === 2) {
-    const minutes = parseInt(parts[0], 10);
-    const seconds = parseInt(parts[1], 10);
+    const minutes = parseInt(parts[0], 10) || 0; // Default to 0 if NaN
+    const seconds = parseInt(parts[1], 10) || 0; // Default to 0 if NaN
     
     console.log('Parsed as MM:SS:', { minutes, seconds });
     
-    // Validate parts are numbers
-    if (isNaN(minutes) || isNaN(seconds)) {
-      console.warn('Invalid time format (NaN values):', parts);
-      return null;
-    }
-    
     // Validate seconds are in valid range
-    if (seconds < 0 || seconds >= 60) {
-      console.warn('Invalid time values (out of range):', {minutes, seconds});
-      return null;
+    if (seconds >= 60) {
+      console.warn('Seconds out of range, adjusting:', seconds);
+      // Instead of error, we can adjust - add excess seconds to minutes
+      const adjustedMinutes = minutes + Math.floor(seconds / 60);
+      const adjustedSeconds = seconds % 60;
+      const totalSeconds = adjustedMinutes * 60 + adjustedSeconds;
+      console.log('Adjusted to:', { adjustedMinutes, adjustedSeconds, totalSeconds });
+      return totalSeconds;
     }
     
     const totalSeconds = minutes * 60 + seconds;
@@ -84,21 +74,34 @@ export const parseTimeInput = (timeString: string): number | null => {
     return totalSeconds;
   }
   
-  // Handle SS format
-  if (parts.length === 1) {
-    // Make sure we're dealing with a clean number
-    const trimmedPart = parts[0].trim();
-    const seconds = parseInt(trimmedPart, 10);
-    console.log('Parsed as SS:', seconds);
+  // Handle HH:MM:SS format
+  if (parts.length === 3) {
+    const hours = parseInt(parts[0], 10) || 0;    // Default to 0 if NaN
+    const minutes = parseInt(parts[1], 10) || 0;  // Default to 0 if NaN
+    const seconds = parseInt(parts[2], 10) || 0;  // Default to 0 if NaN
     
-    if (isNaN(seconds)) {
-      console.warn('Invalid time format (NaN value):', parts[0]);
-      return null;
+    console.log('Parsed as HH:MM:SS:', { hours, minutes, seconds });
+    
+    // Adjust times if they're out of range
+    let adjustedHours = hours;
+    let adjustedMinutes = minutes;
+    let adjustedSeconds = seconds;
+    
+    // If seconds >= 60, add to minutes
+    if (adjustedSeconds >= 60) {
+      adjustedMinutes += Math.floor(adjustedSeconds / 60);
+      adjustedSeconds = adjustedSeconds % 60;
     }
     
-    // Just return the number directly as seconds
-    console.log('Parsed SS format to seconds:', seconds);
-    return seconds;
+    // If minutes >= 60, add to hours
+    if (adjustedMinutes >= 60) {
+      adjustedHours += Math.floor(adjustedMinutes / 60);
+      adjustedMinutes = adjustedMinutes % 60;
+    }
+    
+    const totalSeconds = adjustedHours * 3600 + adjustedMinutes * 60 + adjustedSeconds;
+    console.log('Parsed HH:MM:SS format to seconds:', totalSeconds);
+    return totalSeconds;
   }
   
   console.warn('Unable to parse time format:', timeString);
