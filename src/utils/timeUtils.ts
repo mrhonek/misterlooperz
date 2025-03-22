@@ -1,5 +1,5 @@
 /**
- * Format time in seconds to HH:MM:SS format
+ * Format time in seconds to HH:MM:SS format for display purposes
  */
 export const formatTime = (timeInSeconds: number | null): string => {
   if (timeInSeconds === null) return '';

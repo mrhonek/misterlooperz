@@ -65,11 +65,15 @@ const TimeInput: React.FC<TimeInputProps> = ({
     // If empty after filtering, return empty string
     if (!numericOnly) return '';
     
-    // Parse number and cap at max value
+    // Always preserve the exact user input (up to 2 digits) unless it exceeds maximum
     const num = parseInt(numericOnly, 10);
-    if (num > max) return max.toString();
     
-    // Return as-is with max 2 digits
+    // Only limit the value if it exceeds max allowed
+    if (num > max) {
+      return max.toString();
+    }
+    
+    // Otherwise return exactly what the user entered (limited to 2 digits)
     return numericOnly.slice(0, 2);
   };
   
@@ -85,13 +89,15 @@ const TimeInput: React.FC<TimeInputProps> = ({
     
     // For MM:SS format (no hours)
     if (!h && (m || s)) {
-      // Always include both minutes and seconds with proper formatting
-      return `${m || '0'}:${s.padStart(2, '0')}`;
+      // Don't pad or manipulate the seconds value, keep it exactly as entered
+      // Only pad zeros for display formatting, not for the actual value
+      return `${m || '0'}:${s || '0'}`;
     }
     
     // For HH:MM:SS format
     if (h) {
-      return `${h}:${m.padStart(2, '0')}:${s.padStart(2, '0')}`;
+      // Don't pad or manipulate the input values
+      return `${h}:${m || '0'}:${s || '0'}`;
     }
     
     // Fallback (shouldn't reach here)
