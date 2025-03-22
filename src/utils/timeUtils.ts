@@ -20,7 +20,10 @@ export const formatTime = (timeInSeconds: number | null): string => {
  */
 export const parseTimeInput = (timeString: string): number | null => {
   // If empty string, return null
-  if (!timeString || !timeString.trim()) return null;
+  if (!timeString || !timeString.trim()) {
+    console.log('Empty time string, returning null');
+    return null;
+  }
 
   // Normalize input by trimming and ensuring we have proper delimiters
   const normalizedTimeString = timeString.trim();
@@ -30,12 +33,15 @@ export const parseTimeInput = (timeString: string): number | null => {
 
   // Split by :
   const parts = normalizedTimeString.split(':');
+  console.log('Split into parts:', parts);
   
   // Handle HH:MM:SS format
   if (parts.length === 3) {
     const hours = parseInt(parts[0], 10);
     const minutes = parseInt(parts[1], 10);
     const seconds = parseInt(parts[2], 10);
+    
+    console.log('Parsed as HH:MM:SS:', { hours, minutes, seconds });
     
     // Validate parts are numbers
     if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
@@ -59,6 +65,8 @@ export const parseTimeInput = (timeString: string): number | null => {
     const minutes = parseInt(parts[0], 10);
     const seconds = parseInt(parts[1], 10);
     
+    console.log('Parsed as MM:SS:', { minutes, seconds });
+    
     // Validate parts are numbers
     if (isNaN(minutes) || isNaN(seconds)) {
       console.warn('Invalid time format (NaN values):', parts);
@@ -79,6 +87,8 @@ export const parseTimeInput = (timeString: string): number | null => {
   // Handle SS format
   if (parts.length === 1) {
     const seconds = parseInt(parts[0], 10);
+    console.log('Parsed as SS:', seconds);
+    
     if (isNaN(seconds)) {
       console.warn('Invalid time format (NaN value):', parts[0]);
       return null;

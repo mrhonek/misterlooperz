@@ -21,9 +21,20 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
       return;
     }
 
+    // Make sure we have properly formatted values
+    const formattedStartTime = startTimeStr ? startTimeStr.trim() : '';
+    const formattedEndTime = endTimeStr ? endTimeStr.trim() : '';
+    
+    console.log('VideoInput - submitting with times:', { 
+      startTimeStr: formattedStartTime, 
+      endTimeStr: formattedEndTime 
+    });
+
     // Parse time strings to seconds
-    const startTime = startTimeStr ? parseTimeString(startTimeStr) : null;
-    const endTime = endTimeStr ? parseTimeString(endTimeStr) : null;
+    const startTime = formattedStartTime ? parseTimeString(formattedStartTime) : null;
+    const endTime = formattedEndTime ? parseTimeString(formattedEndTime) : null;
+    
+    console.log('VideoInput - parsed times:', { startTime, endTime });
 
     // Validate end time is after start time if both are provided
     if (startTime !== null && endTime !== null && endTime <= startTime) {

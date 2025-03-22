@@ -58,16 +58,23 @@ const TimeInput: React.FC<TimeInputProps> = ({
   const validateAndFormat = (value: string, max: number): string => {
     if (!value) return '';
     
-    // If the user is typing, allow partial input
-    if (value.length === 1 && parseInt(value, 10) <= 9) {
-      return value;
+    // First, remove any non-numeric characters
+    const numericValue = value.replace(/[^0-9]/g, '');
+    
+    // If empty after filtering, return empty
+    if (!numericValue) return '';
+    
+    // If it's still a valid length (1 or 2 digits), preserve it as is
+    if (numericValue.length <= 2) {
+      // Just check if it exceeds max
+      const num = parseInt(numericValue, 10);
+      return num <= max ? numericValue : max.toString();
     }
     
-    const num = parseInt(value, 10);
-    if (isNaN(num)) return '';
-    
-    // Ensure we don't exceed max value
-    return num <= max ? num.toString() : max.toString();
+    // For longer inputs, truncate to 2 digits and validate
+    const truncated = numericValue.slice(0, 2);
+    const num = parseInt(truncated, 10);
+    return num <= max ? truncated : max.toString();
   };
   
   // Handle field changes

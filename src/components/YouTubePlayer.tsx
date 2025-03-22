@@ -38,6 +38,17 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const effectiveStartTime = startTime || 0;
   
+  // Log prop changes for debugging
+  useEffect(() => {
+    console.log('YouTubePlayer - Props updated:', { 
+      videoId, 
+      startTime, 
+      effectiveStartTime,
+      endTime, 
+      autoPlayEnabled 
+    });
+  }, [videoId, startTime, effectiveStartTime, endTime, autoPlayEnabled]);
+  
   // Store player state for orientation changes
   const playerStateRef = useRef({
     currentTime: effectiveStartTime,
@@ -131,18 +142,20 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   useEffect(() => {
     // Don't seek if we don't have a player yet or we're handling orientation change
     if (!playerRef.current || playerStateRef.current.pendingOrientationChange) {
+      console.log('YouTubePlayer - Player not ready or orientation change in progress, skipping seek');
       return;
     }
     
     // Only attempt to seek if we have a valid start time
     if (typeof effectiveStartTime === 'number') {
       try {
-        console.log('Start time changed, seeking to:', effectiveStartTime);
+        console.log('YouTubePlayer - Start time changed, seeking to:', effectiveStartTime);
         // @ts-ignore
         playerRef.current.seekTo(effectiveStartTime, true);
         
-        // Also update the player options (this is needed for YouTube's 'start' parameter)
+        // Also reload the video with the new start time to ensure it's applied
         if (playerRef.current && 'loadVideoById' in playerRef.current) {
+          console.log('YouTubePlayer - Reloading video with new start time:', effectiveStartTime);
           // @ts-ignore
           playerRef.current.loadVideoById({
             videoId: videoId,
@@ -158,7 +171,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   // Also update when endTime changes
   useEffect(() => {
     if (playerRef.current && typeof endTime === 'number') {
-      console.log('End time updated to:', endTime);
+      console.log('YouTubePlayer - End time updated to:', endTime);
     }
   }, [endTime]);
 

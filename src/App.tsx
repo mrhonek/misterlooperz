@@ -89,6 +89,8 @@ function App() {
       return;
     }
 
+    console.log('App - Adding video with times:', { startTime, endTime });
+    
     setLoading(true);
     try {
       // Fetch video info from YouTube
@@ -103,6 +105,8 @@ function App() {
         endTime,
       };
 
+      console.log('App - Created new video object:', newVideo);
+      
       setVideos(prev => [...prev, newVideo]);
       if (!currentVideo) {
         setCurrentVideo(newVideo);
@@ -120,6 +124,8 @@ function App() {
         endTime,
       };
 
+      console.log('App - Created fallback video object:', newVideo);
+      
       setVideos(prev => [...prev, newVideo]);
       if (!currentVideo) {
         setCurrentVideo(newVideo);
@@ -154,17 +160,23 @@ function App() {
   };
 
   const handleTimeChange = (id: string, type: 'startTime' | 'endTime', value: number | null) => {
+    console.log(`App - Changing ${type} for video ${id} to:`, value);
+    
     const newVideos = videos.map(video => {
       if (video.id === id) {
-        return { ...video, [type]: value };
+        const updatedVideo = { ...video, [type]: value };
+        console.log('App - Updated video:', updatedVideo);
+        return updatedVideo;
       }
       return video;
     });
+    
     setVideos(newVideos);
 
     if (currentVideo && currentVideo.id === id) {
       const updatedVideo = newVideos.find(v => v.id === id);
       if (updatedVideo) {
+        console.log('App - Updating current video to:', updatedVideo);
         setCurrentVideo(updatedVideo);
       }
     }
