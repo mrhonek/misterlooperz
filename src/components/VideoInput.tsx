@@ -83,21 +83,23 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
     width: '100%',
     marginBottom: '10px',
     flexDirection: isMobile ? 'column' : 'row',
-    justifyContent: 'flex-start'
+    position: 'relative'
   };
 
   const timeInputStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    width: isMobile ? '100%' : '48%',
-    marginRight: isMobile ? 0 : '4%'
+    width: isMobile ? '100%' : '40%',
+    zIndex: 1
   };
   
   const endTimeInputStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    width: isMobile ? '100%' : '48%',
-    marginLeft: isMobile ? 0 : '-50px'
+    width: isMobile ? '100%' : '40%',
+    marginLeft: isMobile ? 0 : '-130px',
+    position: 'relative',
+    zIndex: 0
   };
 
   const labelStyle: React.CSSProperties = {

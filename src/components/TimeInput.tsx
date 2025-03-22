@@ -155,13 +155,17 @@ const TimeInput: React.FC<TimeInputProps> = ({
     display: 'block',
     fontSize: '14px',
     color: '#ccc',
-    marginBottom: '5px'
+    marginBottom: '5px',
+    backgroundColor: '#2d3748',
+    paddingRight: '5px',
+    width: 'fit-content'
   };
   
   const timeInputsContainerStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '4px'
+    gap: '4px',
+    backgroundColor: '#2d3748'
   };
   
   const inputStyle: React.CSSProperties = {
