@@ -20,10 +20,16 @@ export const formatTime = (timeInSeconds: number | null): string => {
  */
 export const parseTimeInput = (timeString: string): number | null => {
   // If empty string, return null
-  if (!timeString.trim()) return null;
+  if (!timeString || !timeString.trim()) return null;
+
+  // Normalize input by trimming and ensuring we have proper delimiters
+  const normalizedTimeString = timeString.trim();
+  
+  // Log the time string we're parsing
+  console.log('Parsing time string:', normalizedTimeString);
 
   // Split by :
-  const parts = timeString.split(':');
+  const parts = normalizedTimeString.split(':');
   
   // Handle HH:MM:SS format
   if (parts.length === 3) {
@@ -32,12 +38,20 @@ export const parseTimeInput = (timeString: string): number | null => {
     const seconds = parseInt(parts[2], 10);
     
     // Validate parts are numbers
-    if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) return null;
+    if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
+      console.warn('Invalid time format (NaN values):', parts);
+      return null;
+    }
     
     // Validate minutes and seconds are in valid range
-    if (minutes < 0 || minutes >= 60 || seconds < 0 || seconds >= 60) return null;
+    if (minutes < 0 || minutes >= 60 || seconds < 0 || seconds >= 60) {
+      console.warn('Invalid time values (out of range):', {hours, minutes, seconds});
+      return null;
+    }
     
-    return hours * 3600 + minutes * 60 + seconds;
+    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+    console.log('Parsed HH:MM:SS format to seconds:', totalSeconds);
+    return totalSeconds;
   }
   
   // Handle MM:SS format
@@ -46,21 +60,34 @@ export const parseTimeInput = (timeString: string): number | null => {
     const seconds = parseInt(parts[1], 10);
     
     // Validate parts are numbers
-    if (isNaN(minutes) || isNaN(seconds)) return null;
+    if (isNaN(minutes) || isNaN(seconds)) {
+      console.warn('Invalid time format (NaN values):', parts);
+      return null;
+    }
     
     // Validate seconds are in valid range
-    if (seconds < 0 || seconds >= 60) return null;
+    if (seconds < 0 || seconds >= 60) {
+      console.warn('Invalid time values (out of range):', {minutes, seconds});
+      return null;
+    }
     
-    return minutes * 60 + seconds;
+    const totalSeconds = minutes * 60 + seconds;
+    console.log('Parsed MM:SS format to seconds:', totalSeconds);
+    return totalSeconds;
   }
   
   // Handle SS format
   if (parts.length === 1) {
     const seconds = parseInt(parts[0], 10);
-    if (isNaN(seconds)) return null;
+    if (isNaN(seconds)) {
+      console.warn('Invalid time format (NaN value):', parts[0]);
+      return null;
+    }
+    console.log('Parsed SS format to seconds:', seconds);
     return seconds;
   }
   
+  console.warn('Unable to parse time format:', timeString);
   return null;
 };
 

@@ -140,11 +140,27 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
         console.log('Start time changed, seeking to:', effectiveStartTime);
         // @ts-ignore
         playerRef.current.seekTo(effectiveStartTime, true);
+        
+        // Also update the player options (this is needed for YouTube's 'start' parameter)
+        if (playerRef.current && 'loadVideoById' in playerRef.current) {
+          // @ts-ignore
+          playerRef.current.loadVideoById({
+            videoId: videoId,
+            startSeconds: effectiveStartTime
+          });
+        }
       } catch (err) {
         console.error('Failed to seek to new start time:', err);
       }
     }
-  }, [effectiveStartTime]);
+  }, [effectiveStartTime, videoId]);
+  
+  // Also update when endTime changes
+  useEffect(() => {
+    if (playerRef.current && typeof endTime === 'number') {
+      console.log('End time updated to:', endTime);
+    }
+  }, [endTime]);
 
   // Update player state ref with current values (so we can access them in orientation change)
   useEffect(() => {

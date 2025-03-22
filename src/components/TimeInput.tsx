@@ -57,65 +57,78 @@ const TimeInput: React.FC<TimeInputProps> = ({
   // Helper to ensure values are within valid ranges
   const validateAndFormat = (value: string, max: number): string => {
     if (!value) return '';
-    // Accept input as-is if it's 1 or 2 digits and not greater than max
+    
+    // If the user is typing, allow partial input
+    if (value.length === 1 && parseInt(value, 10) <= 9) {
+      return value;
+    }
+    
     const num = parseInt(value, 10);
     if (isNaN(num)) return '';
-    return value.length <= 2 && num <= max ? value : Math.min(num, max).toString();
+    
+    // Ensure we don't exceed max value
+    return num <= max ? num.toString() : max.toString();
   };
   
   // Handle field changes
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newHours = validateAndFormat(e.target.value, 99);
+    const newValue = e.target.value;
+    const newHours = validateAndFormat(newValue, 99);
     setHours(newHours);
     updateTime(newHours, minutes, seconds);
+    
+    // Auto-advance if user enters a double-digit number
+    if (newValue.length >= 2 && document.getElementById(minutesId)) {
+      document.getElementById(minutesId)?.focus();
+    }
   };
   
   const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newMinutes = validateAndFormat(e.target.value, 59);
+    const newValue = e.target.value;
+    const newMinutes = validateAndFormat(newValue, 59);
     setMinutes(newMinutes);
     updateTime(hours, newMinutes, seconds);
+    
+    // Auto-advance if user enters a double-digit number
+    if (newValue.length >= 2 && document.getElementById(secondsId)) {
+      document.getElementById(secondsId)?.focus();
+    }
   };
   
   const handleSecondsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newSeconds = validateAndFormat(e.target.value, 59);
+    const newValue = e.target.value;
+    const newSeconds = validateAndFormat(newValue, 59);
     setSeconds(newSeconds);
     updateTime(hours, minutes, newSeconds);
   };
   
-  // Combine the fields and update the parent
+  // Combine the fields and update the parent with a consistent format
   const updateTime = (h: string, m: string, s: string) => {
+    // Always follow proper MM:SS or HH:MM:SS format with padding
     let timeStr = '';
     
+    // Format minutes and seconds with leading zeros if needed
+    const formattedMinutes = m ? m.padStart(2, '0') : '00';
+    const formattedSeconds = s ? s.padStart(2, '0') : '00';
+    
     if (h) {
-      timeStr = `${h}:${m.padStart(2, '0')}:${s.padStart(2, '0')}`;
-    } else if (m) {
-      timeStr = `${m}:${s.padStart(2, '0')}`;
-    } else if (s) {
-      timeStr = s;
+      // HH:MM:SS format
+      timeStr = `${h}:${formattedMinutes}:${formattedSeconds}`;
+    } else if (m || s) {
+      // MM:SS format (ensure both are always present)
+      timeStr = `${formattedMinutes}:${formattedSeconds}`;
     }
     
-    onChange(timeStr);
+    // Only trigger onChange if we actually have a value
+    if (timeStr) {
+      console.log('TimeInput setting value:', timeStr);
+      onChange(timeStr);
+    }
   };
   
   // Handle input focus to manage navigation between fields
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.select();
-  };
-  
-  // Auto-move to next field when maxlength is reached
-  const handleKeyUp = (
-    e: React.KeyboardEvent<HTMLInputElement>, 
-    nextField: 'minutes' | 'seconds' | null
-  ) => {
-    const target = e.target as HTMLInputElement;
-    
-    if (target.value.length >= parseInt(target.getAttribute('maxLength') || '2', 10)) {
-      if (nextField === 'minutes' && document.getElementById(minutesId)) {
-        document.getElementById(minutesId)?.focus();
-      } else if (nextField === 'seconds' && document.getElementById(secondsId)) {
-        document.getElementById(secondsId)?.focus();
-      }
-    }
   };
   
   // Styles
@@ -182,7 +195,6 @@ const TimeInput: React.FC<TimeInputProps> = ({
           value={hours}
           onChange={handleHoursChange}
           onFocus={handleFocus}
-          onKeyUp={(e) => handleKeyUp(e, 'minutes')}
           maxLength={2}
           style={inputSmallStyle}
           aria-label="Hours"
@@ -198,7 +210,6 @@ const TimeInput: React.FC<TimeInputProps> = ({
           value={minutes}
           onChange={handleMinutesChange}
           onFocus={handleFocus}
-          onKeyUp={(e) => handleKeyUp(e, 'seconds')}
           maxLength={2}
           style={inputSmallStyle}
           aria-label="Minutes"
@@ -214,7 +225,6 @@ const TimeInput: React.FC<TimeInputProps> = ({
           value={seconds}
           onChange={handleSecondsChange}
           onFocus={handleFocus}
-          onKeyUp={(e) => handleKeyUp(e, null)}
           maxLength={2}
           style={inputSmallStyle}
           aria-label="Seconds"
