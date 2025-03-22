@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { formatTime, parseTimeString } from '../utils/timeUtils';
 
 interface TimeInputProps {
   value: string;
   onChange: (value: string) => void;
-  placeholder?: string;
   label?: string;
   showHelpText?: boolean;
 }
@@ -12,7 +10,6 @@ interface TimeInputProps {
 const TimeInput: React.FC<TimeInputProps> = ({
   value,
   onChange,
-  placeholder = '0:00',
   label,
   showHelpText = true
 }) => {
