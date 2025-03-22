@@ -178,7 +178,6 @@ const Playlist: React.FC<PlaylistProps> = ({
                 label="Start Time"
                 value={inputValues[video.id]?.start ?? formatTime(video.startTime)}
                 onChange={(value) => handleTimeChange(video.id, 'start', value)}
-                placeholder="0:00"
                 showHelpText={false}
               />
             </div>
@@ -187,7 +186,6 @@ const Playlist: React.FC<PlaylistProps> = ({
                 label="End Time"
                 value={inputValues[video.id]?.end ?? formatTime(video.endTime)}
                 onChange={(value) => handleTimeChange(video.id, 'end', value)}
-                placeholder="0:00" 
                 showHelpText={false}
               />
             </div>

@@ -116,7 +116,6 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
               label="Start Time (optional)"
               value={startTimeStr}
               onChange={setStartTimeStr}
-              placeholder="0:00"
             />
           </div>
           
@@ -125,7 +124,6 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
               label="End Time (optional)"
               value={endTimeStr}
               onChange={setEndTimeStr}
-              placeholder="0:00"
             />
           </div>
         </div>
