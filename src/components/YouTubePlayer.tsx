@@ -36,7 +36,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   const [currentTime, setCurrentTime] = useState(0);
   const [playerError, setPlayerError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const timeUpdateRef = useRef<NodeJS.Timeout | null>(null);
   const orientationChangeRef = useRef<boolean>(false);
   const effectiveStartTime = startTime || 0;
   
