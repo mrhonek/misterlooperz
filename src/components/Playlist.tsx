@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Video } from '../types';
 import { formatTime, parseTimeInput } from '../utils/timeUtils';
 import { truncateText } from '../utils/stringUtils';
+import TimeInput from './TimeInput';
 
 interface PlaylistProps {
   videos: Video[];
@@ -84,30 +85,6 @@ const Playlist: React.FC<PlaylistProps> = ({
 
   const inputGroupStyle: React.CSSProperties = {
     width: '100%'
-  };
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: '14px',
-    color: '#ccc',
-    marginBottom: '5px'
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: isMobile ? '10px' : '5px 10px',
-    backgroundColor: '#333',
-    border: '1px solid #555',
-    borderRadius: '4px',
-    color: 'white',
-    fontSize: isMobile ? '16px' : '14px',
-    minHeight: isMobile ? '44px' : '32px'
-  };
-
-  const helpTextStyle: React.CSSProperties = {
-    color: '#718096',
-    fontSize: '12px',
-    marginTop: '2px'
   };
 
   const buttonGroupStyle: React.CSSProperties = {
@@ -197,28 +174,22 @@ const Playlist: React.FC<PlaylistProps> = ({
           
           <div style={formGroupStyle}>
             <div style={inputGroupStyle}>
-              <label style={labelStyle}>Start Time</label>
-              <input
-                type="text"
+              <TimeInput
+                label="Start Time"
                 value={inputValues[video.id]?.start ?? formatTime(video.startTime)}
-                onChange={(e) => handleTimeChange(video.id, 'start', e.target.value)}
+                onChange={(value) => handleTimeChange(video.id, 'start', value)}
                 placeholder="0:00"
-                style={inputStyle}
-                inputMode="numeric"
+                showHelpText={false}
               />
-              <span style={helpTextStyle}>Format: HH:MM:SS or MM:SS</span>
             </div>
             <div style={inputGroupStyle}>
-              <label style={labelStyle}>End Time</label>
-              <input
-                type="text"
+              <TimeInput
+                label="End Time"
                 value={inputValues[video.id]?.end ?? formatTime(video.endTime)}
-                onChange={(e) => handleTimeChange(video.id, 'end', e.target.value)}
-                placeholder="0:00"
-                style={inputStyle}
-                inputMode="numeric"
+                onChange={(value) => handleTimeChange(video.id, 'end', value)}
+                placeholder="0:00" 
+                showHelpText={false}
               />
-              <span style={helpTextStyle}>Format: HH:MM:SS or MM:SS</span>
             </div>
           </div>
           

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { parseTimeString } from '../utils/timeUtils';
+import TimeInput from './TimeInput';
 
 interface VideoInputProps {
   onAddVideo: (url: string, startTime: number | null, endTime: number | null) => void;
@@ -68,9 +69,17 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
     flexDirection: isMobile ? 'column' : 'row'
   };
 
-  const timeInputStyle: React.CSSProperties = {
-    ...inputStyle,
-    width: isMobile ? '100%' : '120px'
+  const labelStyle: React.CSSProperties = {
+    color: '#a0aec0',
+    fontSize: '14px',
+    marginBottom: '4px',
+    display: 'block'
+  };
+
+  const inputGroupStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    flex: isMobile ? 'auto' : '1'
   };
 
   const buttonStyle: React.CSSProperties = {
@@ -83,19 +92,6 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
     cursor: 'pointer',
     minHeight: isMobile ? '44px' : '38px',
     fontSize: isMobile ? '16px' : '14px'
-  };
-
-  const labelStyle: React.CSSProperties = {
-    color: '#a0aec0',
-    fontSize: '14px',
-    marginBottom: '4px',
-    display: 'block'
-  };
-
-  const inputGroupStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    flex: isMobile ? 'auto' : '1'
   };
 
   return (
@@ -115,31 +111,21 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
         </div>
         
         <div style={timeInputContainerStyle}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label htmlFor="startTime" style={labelStyle}>Start Time (optional)</label>
-            <input
-              id="startTime"
-              type="text"
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <TimeInput 
+              label="Start Time (optional)"
               value={startTimeStr}
-              onChange={(e) => setStartTimeStr(e.target.value)}
-              placeholder="0:00" 
-              style={timeInputStyle}
-              autoComplete="off"
-              inputMode="numeric"
+              onChange={setStartTimeStr}
+              placeholder="0:00"
             />
           </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label htmlFor="endTime" style={labelStyle}>End Time (optional)</label>
-            <input
-              id="endTime"
-              type="text"
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <TimeInput 
+              label="End Time (optional)"
               value={endTimeStr}
-              onChange={(e) => setEndTimeStr(e.target.value)}
+              onChange={setEndTimeStr}
               placeholder="0:00"
-              style={timeInputStyle}
-              autoComplete="off"
-              inputMode="numeric"
             />
           </div>
         </div>
