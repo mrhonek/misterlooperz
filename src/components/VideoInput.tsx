@@ -56,9 +56,14 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
 
   const formStyle: React.CSSProperties = {
     display: 'flex',
-    flexDirection: isMobile ? 'column' : 'row',
+    flexDirection: 'column',
     gap: '10px',
     width: '100%'
+  };
+
+  const urlInputContainerStyle: React.CSSProperties = {
+    width: '100%',
+    marginBottom: '10px'
   };
 
   const inputStyle: React.CSSProperties = {
@@ -67,8 +72,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
     borderRadius: '4px',
     backgroundColor: '#2d3748',
     color: 'white',
-    flex: '1',
-    width: isMobile ? '100%' : 'auto',
+    width: '100%',
     minHeight: isMobile ? '44px' : '38px',
     fontSize: isMobile ? '16px' : '14px'
   };
@@ -76,8 +80,15 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
   const timeInputContainerStyle: React.CSSProperties = {
     display: 'flex',
     gap: '10px',
-    width: isMobile ? '100%' : 'auto',
+    width: '100%',
+    marginBottom: '10px',
     flexDirection: isMobile ? 'column' : 'row'
+  };
+
+  const timeInputStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    flex: 1
   };
 
   const labelStyle: React.CSSProperties = {
@@ -87,14 +98,14 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
     display: 'block'
   };
 
-  const inputGroupStyle: React.CSSProperties = {
+  const buttonContainerStyle: React.CSSProperties = {
     display: 'flex',
-    flexDirection: 'column',
-    flex: isMobile ? 'auto' : '1'
+    justifyContent: isMobile ? 'center' : 'flex-start',
+    width: '100%'
   };
 
   const buttonStyle: React.CSSProperties = {
-    padding: isMobile ? '12px' : '10px',
+    padding: isMobile ? '12px 20px' : '10px 20px',
     backgroundColor: '#3182ce',
     color: 'white',
     border: 'none',
@@ -102,13 +113,15 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
     fontWeight: 'bold',
     cursor: 'pointer',
     minHeight: isMobile ? '44px' : '38px',
-    fontSize: isMobile ? '16px' : '14px'
+    fontSize: isMobile ? '16px' : '14px',
+    minWidth: '150px'
   };
 
   return (
     <div style={containerStyle}>
       <form onSubmit={handleSubmit} style={formStyle}>
-        <div style={inputGroupStyle}>
+        {/* YouTube URL Input */}
+        <div style={urlInputContainerStyle}>
           <label htmlFor="videoUrl" style={labelStyle}>YouTube URL</label>
           <input
             id="videoUrl"
@@ -121,8 +134,9 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
           />
         </div>
         
+        {/* Time Inputs */}
         <div style={timeInputContainerStyle}>
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+          <div style={timeInputStyle}>
             <TimeInput 
               label="Start Time (optional)"
               value={startTimeStr}
@@ -130,7 +144,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
             />
           </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+          <div style={timeInputStyle}>
             <TimeInput 
               label="End Time (optional)"
               value={endTimeStr}
@@ -139,7 +153,8 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
           </div>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+        {/* Add Button */}
+        <div style={buttonContainerStyle}>
           <button 
             type="submit" 
             style={buttonStyle}
