@@ -65,10 +65,19 @@ function App() {
       isMobileRef.current = newIsMobile;
     };
 
-    window.addEventListener('resize', handleResize);
+    // Use a debounced version of resize to avoid handling orientation changes
+    // This gives our orientation change handler in the YouTube component time to work
+    let resizeTimer: NodeJS.Timeout;
+    const debouncedResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(handleResize, 300);
+    };
+
+    window.addEventListener('resize', debouncedResize);
     
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', debouncedResize);
+      clearTimeout(resizeTimer);
     };
   }, []);
 

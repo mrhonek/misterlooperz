@@ -36,14 +36,54 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   const [currentTime, setCurrentTime] = useState(0);
   const [playerError, setPlayerError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const orientationChangeRef = useRef<boolean>(false);
   const effectiveStartTime = startTime || 0;
+  
+  // Store player state for orientation changes
+  const playerStateRef = useRef({
+    currentTime: effectiveStartTime,
+    isPlaying: false,
+    pendingOrientationChange: false
+  });
   
   // Keep track of initial player load
   const initialLoadRef = useRef(true);
   
   // Device detection - only calculate once
   const isMobile = useRef(window.innerWidth <= 768);
+  
+  // Save player state when orientation changes
+  useEffect(() => {
+    // Save current playback state before orientation change
+    const handleBeforeOrientationChange = () => {
+      if (playerRef.current && !playerStateRef.current.pendingOrientationChange) {
+        try {
+          // @ts-ignore
+          const currentTime = playerRef.current.getCurrentTime();
+          // @ts-ignore
+          const isPlaying = playerRef.current.getPlayerState() === PLAYER_STATE.PLAYING;
+          
+          // Store the values
+          playerStateRef.current = {
+            currentTime,
+            isPlaying,
+            pendingOrientationChange: true
+          };
+          
+          console.log('Orientation change detected - saved state:', 
+            { time: currentTime, playing: isPlaying });
+        } catch (err) {
+          console.error('Failed to save state before orientation change:', err);
+        }
+      }
+    };
+    
+    // Listen for both orientation change events
+    window.addEventListener('orientationchange', handleBeforeOrientationChange);
+    
+    return () => {
+      window.removeEventListener('orientationchange', handleBeforeOrientationChange);
+    };
+  }, []);
   
   // Configure player options once
   const opts = useRef({
@@ -82,20 +122,16 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     `;
     document.head.appendChild(style);
 
-    // Add orientation change listener
-    const handleOrientationChange = () => {
-      orientationChangeRef.current = true;
-      // We'll use this flag to detect orientation changes
-    };
-    
-    // Listen for both orientation change and resize events
-    window.addEventListener('orientationchange', handleOrientationChange);
-    
     return () => {
       document.head.removeChild(style);
-      window.removeEventListener('orientationchange', handleOrientationChange);
     };
   }, []);
+
+  // Update player state ref with current values (so we can access them in orientation change)
+  useEffect(() => {
+    playerStateRef.current.currentTime = currentTime;
+    playerStateRef.current.isPlaying = isPlaying;
+  }, [currentTime, isPlaying]);
 
   // Check end time - this is more efficient as a memoized function
   const checkEndTime = useCallback(() => {
@@ -160,50 +196,43 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     };
   }, [isPlaying, endTime, checkEndTime]);
 
-  // Handle orientation change
-  useEffect(() => {
-    if (orientationChangeRef.current && playerRef.current) {
-      try {
-        // Preserve current time and play state
-        // @ts-ignore
-        const currentTime = playerRef.current.getCurrentTime();
-        // @ts-ignore
-        const wasPlaying = playerRef.current.getPlayerState() === PLAYER_STATE.PLAYING;
-        
-        // Wait for orientation change to complete, then restore state
-        setTimeout(() => {
-          try {
-            if (playerRef.current) {
-              // @ts-ignore
-              playerRef.current.seekTo(currentTime, true);
-              
-              if (wasPlaying) {
-                // @ts-ignore
-                playerRef.current.playVideo();
-              }
-            }
-          } catch (err) {
-            console.error('Failed to restore state after orientation change:', err);
-          }
-          
-          // Reset the flag
-          orientationChangeRef.current = false;
-        }, 300);
-      } catch (err) {
-        console.error('Error handling orientation change:', err);
-        orientationChangeRef.current = false;
-      }
-    }
-  }, []);
-
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {
     playerRef.current = event.target;
     // Clear any previous errors
     setPlayerError(null);
     
+    // If we have a pending orientation change, restore the state
+    if (playerStateRef.current.pendingOrientationChange) {
+      try {
+        console.log('Restoring state after orientation change:', 
+          { time: playerStateRef.current.currentTime, playing: playerStateRef.current.isPlaying });
+        
+        // Seek to the saved position
+        event.target.seekTo(playerStateRef.current.currentTime, true);
+        
+        // Restore play state after a short delay
+        setTimeout(() => {
+          try {
+            if (playerStateRef.current.isPlaying) {
+              event.target.playVideo();
+            } else {
+              event.target.pauseVideo();
+            }
+          } catch (err) {
+            console.error('Error restoring play state:', err);
+          }
+          
+          // Reset the orientation change flag
+          playerStateRef.current.pendingOrientationChange = false;
+        }, 500);
+      } catch (err) {
+        console.error('Failed to restore state after orientation change:', err);
+        playerStateRef.current.pendingOrientationChange = false;
+      }
+    } 
     // Handle initial load
-    if (initialLoadRef.current) {
+    else if (initialLoadRef.current) {
       // For mobile, try to unmute after starting playback
       if (isMobile.current) {
         setTimeout(() => {
@@ -219,10 +248,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
       }
       
       initialLoadRef.current = false;
-    }
-    
-    // If this wasn't caused by an orientation change, start at the beginning
-    if (!orientationChangeRef.current) {
+      
+      // Start at beginning for initial load
       event.target.seekTo(effectiveStartTime, true);
     }
   };
