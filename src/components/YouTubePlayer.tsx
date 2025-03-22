@@ -85,7 +85,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     };
   }, []);
   
-  // Configure player options once
+  // Configure player options once - but now have the start time be dynamic based on props
   const opts = useRef({
     height: '100%',
     width: '100%',
@@ -126,6 +126,25 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
       document.head.removeChild(style);
     };
   }, []);
+
+  // Update player when startTime or endTime props change
+  useEffect(() => {
+    // Don't seek if we don't have a player yet or we're handling orientation change
+    if (!playerRef.current || playerStateRef.current.pendingOrientationChange) {
+      return;
+    }
+    
+    // Only attempt to seek if we have a valid start time
+    if (typeof effectiveStartTime === 'number') {
+      try {
+        console.log('Start time changed, seeking to:', effectiveStartTime);
+        // @ts-ignore
+        playerRef.current.seekTo(effectiveStartTime, true);
+      } catch (err) {
+        console.error('Failed to seek to new start time:', err);
+      }
+    }
+  }, [effectiveStartTime]);
 
   // Update player state ref with current values (so we can access them in orientation change)
   useEffect(() => {

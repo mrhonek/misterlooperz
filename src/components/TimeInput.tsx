@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface TimeInputProps {
   value: string;
@@ -14,6 +14,12 @@ const TimeInput: React.FC<TimeInputProps> = ({
   showHelpText = true
 }) => {
   const isMobile = window.innerWidth <= 768;
+  
+  // Generate unique IDs for this instance to avoid conflicts with multiple instances
+  const uniqueId = useRef(`time-input-${Math.random().toString(36).substr(2, 9)}`);
+  const hoursId = `${uniqueId.current}-hours`;
+  const minutesId = `${uniqueId.current}-minutes`;
+  const secondsId = `${uniqueId.current}-seconds`;
   
   // Parse the input value into hours, minutes, seconds
   const [hours, setHours] = useState<string>('');
@@ -51,9 +57,10 @@ const TimeInput: React.FC<TimeInputProps> = ({
   // Helper to ensure values are within valid ranges
   const validateAndFormat = (value: string, max: number): string => {
     if (!value) return '';
+    // Accept input as-is if it's 1 or 2 digits and not greater than max
     const num = parseInt(value, 10);
     if (isNaN(num)) return '';
-    return Math.min(num, max).toString();
+    return value.length <= 2 && num <= max ? value : Math.min(num, max).toString();
   };
   
   // Handle field changes
@@ -103,10 +110,10 @@ const TimeInput: React.FC<TimeInputProps> = ({
     const target = e.target as HTMLInputElement;
     
     if (target.value.length >= parseInt(target.getAttribute('maxLength') || '2', 10)) {
-      if (nextField === 'minutes' && document.getElementById('minutes')) {
-        document.getElementById('minutes')?.focus();
-      } else if (nextField === 'seconds' && document.getElementById('seconds')) {
-        document.getElementById('seconds')?.focus();
+      if (nextField === 'minutes' && document.getElementById(minutesId)) {
+        document.getElementById(minutesId)?.focus();
+      } else if (nextField === 'seconds' && document.getElementById(secondsId)) {
+        document.getElementById(secondsId)?.focus();
       }
     }
   };
@@ -168,7 +175,7 @@ const TimeInput: React.FC<TimeInputProps> = ({
       <div style={timeInputsContainerStyle}>
         {/* Hours input (optional) */}
         <input
-          id="hours"
+          id={hoursId}
           type="text"
           inputMode="numeric"
           placeholder="0"
@@ -184,7 +191,7 @@ const TimeInput: React.FC<TimeInputProps> = ({
         
         {/* Minutes input */}
         <input
-          id="minutes"
+          id={minutesId}
           type="text"
           inputMode="numeric"
           placeholder="00"
@@ -200,7 +207,7 @@ const TimeInput: React.FC<TimeInputProps> = ({
         
         {/* Seconds input */}
         <input
-          id="seconds"
+          id={secondsId}
           type="text"
           inputMode="numeric"
           placeholder="00"
