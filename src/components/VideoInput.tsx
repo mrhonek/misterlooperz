@@ -97,9 +97,9 @@ const VideoInput: React.FC<VideoInputProps> = ({ onAddVideo, isLoading }) => {
     display: 'flex',
     flexDirection: 'column',
     width: isMobile ? '100%' : '40%',
-    marginLeft: isMobile ? 0 : '-130px',
+    marginLeft: isMobile ? 0 : '-70px',
     position: 'relative',
-    zIndex: 0
+    zIndex: 1
   };
 
   const labelStyle: React.CSSProperties = {
