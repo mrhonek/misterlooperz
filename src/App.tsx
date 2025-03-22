@@ -4,14 +4,13 @@ import './App.css';
 import YouTubePlayer from './components/YouTubePlayer';
 import VideoInput from './components/VideoInput';
 import Playlist from './components/Playlist';
-import { Video } from './types';
+import { Video } from './types.ts';
 import { fetchVideoInfo } from './utils/youtubeUtils';
 import { truncateText } from './utils/stringUtils';
 
 function App() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
-  const [playerKey, setPlayerKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -125,13 +124,11 @@ function App() {
 
     if (currentVideo && currentVideo.id === id) {
       setCurrentVideo(newVideos.length > 0 ? newVideos[0] : null);
-      setPlayerKey(prev => prev + 1);
     }
   };
 
   const handlePlayVideo = (video: Video) => {
     setCurrentVideo(video);
-    setPlayerKey(prev => prev + 1);
     setTimeout(() => {
       const player = document.querySelector('iframe')?.contentWindow;
       if (player) {
@@ -158,10 +155,6 @@ function App() {
       const updatedVideo = newVideos.find(v => v.id === id);
       if (updatedVideo) {
         setCurrentVideo(updatedVideo);
-        // If the currently playing video's startTime changed, update the player
-        if (type === 'startTime' && value !== currentVideo.startTime) {
-          setPlayerKey(prev => prev + 1);
-        }
       }
     }
   };
@@ -306,9 +299,6 @@ function App() {
     fontWeight: 'bold',
     cursor: 'pointer'
   };
-
-  // Use layout for style calculations instead of isMobile
-  const isLayoutMobile = layout === 'mobile';
 
   return (
     <div style={appStyle}>
