@@ -64,17 +64,15 @@ const TimeInput: React.FC<TimeInputProps> = ({
     // If empty after filtering, return empty
     if (!numericValue) return '';
     
-    // If it's still a valid length (1 or 2 digits), preserve it as is
-    if (numericValue.length <= 2) {
-      // Just check if it exceeds max
-      const num = parseInt(numericValue, 10);
-      return num <= max ? numericValue : max.toString();
-    }
+    // Always preserve the user's input as-is as long as it's numeric and within max value
+    const num = parseInt(numericValue, 10);
     
-    // For longer inputs, truncate to 2 digits and validate
-    const truncated = numericValue.slice(0, 2);
-    const num = parseInt(truncated, 10);
-    return num <= max ? truncated : max.toString();
+    // If the input exceeds max value, cap it
+    if (num > max) return max.toString();
+    
+    // Otherwise, return exactly what the user entered
+    // This preserves single and double digits exactly as typed
+    return numericValue.slice(0, 2); // Limit to 2 digits max
   };
   
   // Handle field changes
@@ -111,25 +109,37 @@ const TimeInput: React.FC<TimeInputProps> = ({
   
   // Combine the fields and update the parent with a consistent format
   const updateTime = (h: string, m: string, s: string) => {
-    // Always follow proper MM:SS or HH:MM:SS format with padding
-    let timeStr = '';
-    
-    // Format minutes and seconds with leading zeros if needed
-    const formattedMinutes = m ? m.padStart(2, '0') : '00';
-    const formattedSeconds = s ? s.padStart(2, '0') : '00';
-    
-    if (h) {
-      // HH:MM:SS format
-      timeStr = `${h}:${formattedMinutes}:${formattedSeconds}`;
-    } else if (m || s) {
-      // MM:SS format (ensure both are always present)
-      timeStr = `${formattedMinutes}:${formattedSeconds}`;
+    // If we have nothing, return an empty string
+    if (!h && !m && !s) {
+      onChange('');
+      return;
+    }
+
+    // If we only have seconds, pass it directly as seconds
+    if (!h && !m && s) {
+      console.log('TimeInput setting seconds-only value:', s);
+      onChange(s);
+      return;
     }
     
-    // Only trigger onChange if we actually have a value
-    if (timeStr) {
-      console.log('TimeInput setting value:', timeStr);
+    // Format minutes and seconds with leading zeros if needed
+    const formattedMinutes = m.padStart(2, '0');
+    const formattedSeconds = s.padStart(2, '0');
+    
+    // If we have hours, use HH:MM:SS format
+    if (h) {
+      const timeStr = `${h}:${formattedMinutes}:${formattedSeconds}`;
+      console.log('TimeInput setting HH:MM:SS value:', timeStr);
       onChange(timeStr);
+      return;
+    }
+    
+    // Otherwise, use MM:SS format
+    if (m || s) {
+      const timeStr = `${m || '0'}:${formattedSeconds}`;
+      console.log('TimeInput setting MM:SS value:', timeStr);
+      onChange(timeStr);
+      return;
     }
   };
   

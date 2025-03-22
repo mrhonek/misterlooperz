@@ -86,13 +86,17 @@ export const parseTimeInput = (timeString: string): number | null => {
   
   // Handle SS format
   if (parts.length === 1) {
-    const seconds = parseInt(parts[0], 10);
+    // Make sure we're dealing with a clean number
+    const trimmedPart = parts[0].trim();
+    const seconds = parseInt(trimmedPart, 10);
     console.log('Parsed as SS:', seconds);
     
     if (isNaN(seconds)) {
       console.warn('Invalid time format (NaN value):', parts[0]);
       return null;
     }
+    
+    // Just return the number directly as seconds
     console.log('Parsed SS format to seconds:', seconds);
     return seconds;
   }

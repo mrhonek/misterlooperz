@@ -146,24 +146,27 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
       return;
     }
     
-    // Only attempt to seek if we have a valid start time
-    if (typeof effectiveStartTime === 'number') {
+    // We want to force reload the video when videoId or startTime changes to ensure YouTube honors the start time
+    const shouldReload = typeof effectiveStartTime === 'number';
+    
+    if (shouldReload) {
       try {
-        console.log('YouTubePlayer - Start time changed, seeking to:', effectiveStartTime);
-        // @ts-ignore
-        playerRef.current.seekTo(effectiveStartTime, true);
+        console.log('YouTubePlayer - Force reloading video with start time:', effectiveStartTime);
         
-        // Also reload the video with the new start time to ensure it's applied
+        // Reload the video with the proper start time
         if (playerRef.current && 'loadVideoById' in playerRef.current) {
-          console.log('YouTubePlayer - Reloading video with new start time:', effectiveStartTime);
           // @ts-ignore
           playerRef.current.loadVideoById({
             videoId: videoId,
             startSeconds: effectiveStartTime
           });
+        } else {
+          // Fallback to seek if loadVideoById is not available
+          // @ts-ignore
+          playerRef.current.seekTo(effectiveStartTime, true);
         }
       } catch (err) {
-        console.error('Failed to seek to new start time:', err);
+        console.error('Failed to reload video with new start time:', err);
       }
     }
   }, [effectiveStartTime, videoId]);
