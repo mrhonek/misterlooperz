@@ -191,14 +191,16 @@ function App() {
   const handleVideoEnd = () => {
     // If we have a current video and playlist
     if (currentVideo && videos.length > 0) {
-      // Always advance to next video when a video ends (either naturally or by reaching end time)
-      const currentIndex = videos.findIndex(v => v.id === currentVideo.id);
-      if (currentIndex < videos.length - 1) {
-        // Play next video
-        handlePlayVideo(videos[currentIndex + 1]);
-      } else {
-        // Loop back to first video if at the end
-        handlePlayVideo(videos[0]);
+      // Only advance to next video when autoPlayEnabled is true
+      if (autoPlayEnabled) {
+        const currentIndex = videos.findIndex(v => v.id === currentVideo.id);
+        if (currentIndex < videos.length - 1) {
+          // Play next video
+          handlePlayVideo(videos[currentIndex + 1]);
+        } else {
+          // Loop back to first video if at the end
+          handlePlayVideo(videos[0]);
+        }
       }
     }
   };

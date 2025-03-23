@@ -197,6 +197,9 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
             // In loop mode, loop back to start time
             // @ts-ignore - Ignore TypeScript errors for YouTube API calls
             player.seekTo(effectiveStartTime, true);
+            // Ensure player continues playing after seeking
+            // @ts-ignore
+            player.playVideo();
           }
         }
       }
@@ -240,6 +243,29 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
       }
     };
   }, [isPlaying, endTime, checkEndTime]);
+
+  // Add a visibility change event listener to handle document focus/blur
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Page is now visible - continue playback if it was playing
+        if (isPlaying && playerRef.current) {
+          try {
+            // @ts-ignore
+            playerRef.current.playVideo();
+          } catch (err) {
+            console.error('Error resuming playback after visibility change:', err);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPlaying]);
 
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {
@@ -302,9 +328,20 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   const onStateChange = (event: YouTubeEvent) => {
     // Check player state and update isPlaying
     if (event.data === PLAYER_STATE.ENDED) {
-      if (onEnd) {
+      if (autoPlayEnabled && onEnd) {
         onEnd();
-      } else if (!endTime) {
+      } else if (!autoPlayEnabled) {
+        // When not in autoplay mode and video ends, loop back to start
+        try {
+          // @ts-ignore
+          event.target.seekTo(effectiveStartTime, true);
+          // Ensure playback continues
+          // @ts-ignore
+          event.target.playVideo();
+        } catch (err) {
+          console.error('Error looping video after end:', err);
+        }
+      } else {
         // Only mark as not playing if we don't have a custom end time 
         // (since our interval will handle the loop)
         setIsPlaying(false);
