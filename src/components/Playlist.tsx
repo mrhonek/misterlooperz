@@ -196,13 +196,13 @@ const Playlist: React.FC<PlaylistProps> = ({
               onClick={() => onPlayVideo(video)}
               style={playButtonStyle}
             >
-              {isMobile ? '▶️ Play' : 'Play'}
+              {isMobile ? 'Play' : 'Play'}
             </button>
             <button
               onClick={() => onRemoveVideo(video.id)}
               style={removeButtonStyle}
             >
-              {isMobile ? '🗑️ Remove' : 'Remove'}
+              {isMobile ? 'Remove' : 'Remove'}
             </button>
           </div>
         </div>

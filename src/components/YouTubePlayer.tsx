@@ -478,15 +478,15 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
         <div style={buttonGroupStyle}>
           {isPlaying ? (
             <button style={{...buttonStyle, backgroundColor: '#e53e3e'}} onClick={handlePause}>
-              ⏸️ Pause
+              Pause
             </button>
           ) : (
             <button style={{...buttonStyle, backgroundColor: '#38a169'}} onClick={handlePlay}>
-              ▶️ Play
+              Play
             </button>
           )}
           <button style={buttonStyle} onClick={handleSeekToStart}>
-            ⏮️ Restart
+            Restart
           </button>
         </div>
         <div style={timeDisplayStyle}>
