@@ -38,6 +38,9 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const effectiveStartTime = startTime || 0;
   
+  // Add a ref to track if video ended while page was not visible
+  const pendingAutoPlayRef = useRef(false);
+  
   // Added debug logs
   console.log('YouTubePlayer rendering with props:', {
     videoId,
@@ -178,6 +181,36 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     playerStateRef.current.isPlaying = isPlaying;
   }, [currentTime, isPlaying]);
 
+  // Update the visibility change handler to check for pending auto play
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Page is now visible
+        if (pendingAutoPlayRef.current && autoPlayEnabled && onEnd) {
+          // If we have a pending auto play action, trigger it now
+          console.log('Triggering pending auto play after tab becomes visible');
+          pendingAutoPlayRef.current = false;
+          onEnd();
+        }
+        // Continue playback if it was playing (existing logic)
+        else if (isPlaying && playerRef.current) {
+          try {
+            // @ts-ignore
+            playerRef.current.playVideo();
+          } catch (err) {
+            console.error('Error resuming playback after visibility change:', err);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPlaying, autoPlayEnabled, onEnd]);
+
   // Check end time - this is more efficient as a memoized function
   const checkEndTime = useCallback(() => {
     try {
@@ -191,7 +224,14 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
           if (autoPlayEnabled) {
             // In auto-play mode, trigger onEnd to go to next video
             if (onEnd) {
-              onEnd();
+              // Check if document is visible
+              if (document.visibilityState === 'visible') {
+                onEnd();
+              } else {
+                // If not visible, mark that we need to auto play when tab becomes visible
+                console.log('Setting pendingAutoPlay flag since document is not visible');
+                pendingAutoPlayRef.current = true;
+              }
             }
           } else {
             // In loop mode, loop back to start time
@@ -243,29 +283,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
       }
     };
   }, [isPlaying, endTime, checkEndTime]);
-
-  // Add a visibility change event listener to handle document focus/blur
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Page is now visible - continue playback if it was playing
-        if (isPlaying && playerRef.current) {
-          try {
-            // @ts-ignore
-            playerRef.current.playVideo();
-          } catch (err) {
-            console.error('Error resuming playback after visibility change:', err);
-          }
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isPlaying]);
 
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {
@@ -329,7 +346,14 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     // Check player state and update isPlaying
     if (event.data === PLAYER_STATE.ENDED) {
       if (autoPlayEnabled && onEnd) {
-        onEnd();
+        // Check if document is visible
+        if (document.visibilityState === 'visible') {
+          onEnd();
+        } else {
+          // If not visible, mark that we need to auto play when tab becomes visible
+          console.log('Setting pendingAutoPlay flag since document is not visible');
+          pendingAutoPlayRef.current = true;
+        }
       } else if (!autoPlayEnabled) {
         // When not in autoplay mode and video ends, loop back to start
         try {
@@ -347,6 +371,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
         setIsPlaying(false);
       }
     } else if (event.data === PLAYER_STATE.PLAYING) {
+      // Reset pending auto play flag when playback starts
+      pendingAutoPlayRef.current = false;
       setIsPlaying(true);
     } else if (event.data === PLAYER_STATE.PAUSED) {
       setIsPlaying(false);
