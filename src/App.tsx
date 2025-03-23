@@ -7,7 +7,7 @@ import Playlist from './components/Playlist';
 import { Video } from './types.ts';
 import { fetchVideoInfo } from './utils/youtubeUtils';
 import { truncateText } from './utils/stringUtils';
-import { registerServiceWorker, startVideoTimer, stopTimer, checkTimers, getVideoIdForTimer } from './utils/serviceWorkerUtils';
+import { registerServiceWorker, startVideoTimer, stopTimer, checkTimers } from './utils/serviceWorkerUtils';
 
 function App() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -21,22 +21,7 @@ function App() {
 
   // Add background play tracking system
   const [backgroundPlayTimerId, setBackgroundPlayTimerId] = useState<string | null>(null);
-  const backgroundPlayStateRef = useRef<{
-    videoEndTimestamp: number | null;
-    currentVideoId: string | null;
-    videoIndex: number | null;
-    lastCheckTime: number;
-    catchupMode: boolean;
-  }>({
-    videoEndTimestamp: null,
-    currentVideoId: null,
-    videoIndex: null,
-    lastCheckTime: Date.now(),
-    catchupMode: false
-  });
   
-  // Detect browser for Chrome-specific optimizations
-  const [isChrome, setIsChrome] = useState(false);
   // Service worker support tracking
   const [swAvailable, setSwAvailable] = useState(false);
   
@@ -59,7 +44,7 @@ function App() {
       
       // Handle different message types
       if (customEvent.detail.type === 'TIMER_COMPLETE') {
-        const { videoId, timerId } = customEvent.detail;
+        const { videoId } = customEvent.detail;
         
         // Verify this is for the current video
         if (currentVideo && currentVideo.videoId === videoId) {
@@ -94,14 +79,6 @@ function App() {
       if (checkInterval) clearInterval(checkInterval);
     };
   }, [swAvailable, currentVideo]);
-  
-  // Detect if we're using Chrome
-  useEffect(() => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isChromeBrowser = /chrome/.test(userAgent) && !/edge|edg/.test(userAgent) && !/opr|opera/.test(userAgent);
-    setIsChrome(isChromeBrowser);
-    console.log('Browser detection:', isChromeBrowser ? 'Chrome' : 'Other browser');
-  }, []);
 
   useEffect(() => {
     const savedVideos = localStorage.getItem('videos');
@@ -186,11 +163,11 @@ function App() {
         const durationMs = videoDuration * 1000 + 1000;
         
         // Start a service worker timer
-        const timerId = startVideoTimer(currentVideo.videoId, durationMs);
+        const newTimerId = startVideoTimer(currentVideo.videoId, durationMs);
         
-        if (timerId) {
+        if (newTimerId) {
           console.log('Started service worker timer for video', currentVideo.videoId, 'duration:', durationMs);
-          setBackgroundPlayTimerId(timerId);
+          setBackgroundPlayTimerId(newTimerId);
         }
       } catch (error) {
         console.error('Error setting up service worker timer:', error);
