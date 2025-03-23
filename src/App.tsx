@@ -24,11 +24,26 @@ function App() {
     videoEndTimestamp: number | null;
     currentVideoId: string | null;
     videoIndex: number | null;
+    lastCheckTime: number;
+    catchupMode: boolean;
   }>({
     videoEndTimestamp: null,
     currentVideoId: null,
-    videoIndex: null
+    videoIndex: null,
+    lastCheckTime: Date.now(),
+    catchupMode: false
   });
+  
+  // Detect browser for Chrome-specific optimizations
+  const [isChrome, setIsChrome] = useState(false);
+  
+  // Detect if we're using Chrome
+  useEffect(() => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isChromeBrowser = /chrome/.test(userAgent) && !/edge|edg/.test(userAgent) && !/opr|opera/.test(userAgent);
+    setIsChrome(isChromeBrowser);
+    console.log('Browser detection:', isChromeBrowser ? 'Chrome' : 'Other browser');
+  }, []);
 
   useEffect(() => {
     const savedVideos = localStorage.getItem('videos');
@@ -217,7 +232,7 @@ function App() {
     }
   };
 
-  // Set up background play worker that can run even when tab is not focused
+  // Set up background play worker with Chrome-specific optimizations
   useEffect(() => {
     // Clean up any existing timer
     if (backgroundPlayTimerId) {
@@ -238,25 +253,65 @@ function App() {
         backgroundPlayStateRef.current = {
           videoEndTimestamp,
           currentVideoId: currentVideo.videoId,
-          videoIndex: videos.findIndex(v => v.id === currentVideo.id)
+          videoIndex: videos.findIndex(v => v.id === currentVideo.id),
+          lastCheckTime: now,
+          catchupMode: false
         };
         
         console.log('Background play: Setting up timer for', videoDuration, 'seconds');
         
-        // Set a timer for when this video should end
-        const timerId = window.setTimeout(() => {
-          console.log('Background play: Timer fired, checking if video should advance');
-          
-          // When the timer fires, check if the same video is playing
-          if (currentVideo && 
-              currentVideo.videoId === backgroundPlayStateRef.current.currentVideoId) {
-            console.log('Background play: Same video still playing, advancing to next video');
-            handleVideoEnd();
-          }
-        }, videoDuration * 1000);
+        // Store current video state in localStorage to survive tab reloads and browser restarts
+        const persistentState = {
+          videoId: currentVideo.videoId,
+          startedAt: now,
+          endTimestamp: videoEndTimestamp,
+          videoIndex: videos.findIndex(v => v.id === currentVideo.id)
+        };
+        localStorage.setItem('misterlooperz_bg_state', JSON.stringify(persistentState));
         
-        // Store the timer ID for cleanup
-        setBackgroundPlayTimerId(timerId);
+        // Chrome optimization - use shorter intervals for more accurate timing
+        if (isChrome) {
+          // For Chrome, we'll use a heartbeat interval instead of setTimeout
+          // This is more reliable in Chrome's background tab throttling
+          const heartbeatId = window.setInterval(() => {
+            // Current time
+            const currentTime = Date.now();
+            
+            // Check if video should have ended
+            if (currentTime >= backgroundPlayStateRef.current.videoEndTimestamp!) {
+              console.log('Chrome background play: Heartbeat detected video should end');
+              
+              // Check if the document is visible
+              if (document.visibilityState === 'visible') {
+                handleVideoEnd();
+                // Clear this interval
+                window.clearInterval(heartbeatId);
+              } else {
+                // Mark that we need to advance when tab becomes visible
+                backgroundPlayStateRef.current.catchupMode = true;
+                // Keep the interval running to check again
+              }
+            }
+          }, 1000); // Check every second
+          
+          // Store the timer ID
+          setBackgroundPlayTimerId(heartbeatId as unknown as number);
+        } else {
+          // For other browsers, the setTimeout approach works fine
+          const timerId = window.setTimeout(() => {
+            console.log('Background play: Timer fired, checking if video should advance');
+            
+            // When the timer fires, check if the same video is playing
+            if (currentVideo && 
+                currentVideo.videoId === backgroundPlayStateRef.current.currentVideoId) {
+              console.log('Background play: Same video still playing, advancing to next video');
+              handleVideoEnd();
+            }
+          }, videoDuration * 1000);
+          
+          // Store the timer ID for cleanup
+          setBackgroundPlayTimerId(timerId);
+        }
       } catch (error) {
         console.error('Error setting up background play timer:', error);
       }
@@ -265,10 +320,14 @@ function App() {
     return () => {
       // Clean up timer on unmount or when dependencies change
       if (backgroundPlayTimerId) {
-        window.clearTimeout(backgroundPlayTimerId);
+        if (isChrome) {
+          window.clearInterval(backgroundPlayTimerId);
+        } else {
+          window.clearTimeout(backgroundPlayTimerId);
+        }
       }
     };
-  }, [autoPlayEnabled, currentVideo, videos, backgroundPlayTimerId]);
+  }, [autoPlayEnabled, currentVideo, videos, backgroundPlayTimerId, isChrome]);
   
   // Add a visibility change handler to check if a video should have advanced while tab was hidden
   useEffect(() => {
@@ -277,7 +336,38 @@ function App() {
       if (document.visibilityState === 'visible') {
         const now = Date.now();
         
-        // If we have auto play enabled and a stored end timestamp
+        // Check local storage for persistent state (helps across page reloads)
+        try {
+          const persistentStateStr = localStorage.getItem('misterlooperz_bg_state');
+          if (persistentStateStr) {
+            const persistentState = JSON.parse(persistentStateStr);
+            
+            // If the end timestamp has passed
+            if (now > persistentState.endTimestamp) {
+              console.log('Background play: Detected via localStorage that video should have ended');
+              
+              // See if this is the same playlist position
+              const currentIndex = currentVideo ? videos.findIndex(v => v.id === currentVideo.id) : -1;
+              
+              // If we're still on the same video that should have ended
+              if (currentVideo?.videoId === persistentState.videoId || 
+                  currentIndex === persistentState.videoIndex) {
+                handleVideoEnd();
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error checking persistent state:', err);
+        }
+        
+        // Chrome-specific catch-up mechanism
+        if (isChrome && backgroundPlayStateRef.current.catchupMode) {
+          console.log('Chrome background play: Catch-up mode detected, advancing video');
+          backgroundPlayStateRef.current.catchupMode = false;
+          handleVideoEnd();
+        }
+        
+        // Regular timestamp check (backup)
         if (autoPlayEnabled && 
             backgroundPlayStateRef.current.videoEndTimestamp && 
             currentVideo) {
@@ -298,7 +388,35 @@ function App() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [autoPlayEnabled, currentVideo]);
+  }, [autoPlayEnabled, currentVideo, videos, isChrome]);
+  
+  // Do an immediate check on mount to handle case where video should have played while page was closed
+  useEffect(() => {
+    if (autoPlayEnabled && currentVideo) {
+      // Check localStorage for any videos that should have played
+      try {
+        const persistentStateStr = localStorage.getItem('misterlooperz_bg_state');
+        if (persistentStateStr) {
+          const persistentState = JSON.parse(persistentStateStr);
+          const now = Date.now();
+          
+          // If more than the video duration has passed
+          if (persistentState.endTimestamp && now > persistentState.endTimestamp) {
+            // Only if autoplay is enabled and this is the same video
+            if (autoPlayEnabled && currentVideo.videoId === persistentState.videoId) {
+              console.log('Initial check: Video should have ended while page was closed');
+              // Use a short delay to ensure everything is ready
+              setTimeout(() => {
+                handleVideoEnd();
+              }, 1000);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error in initial state check:', err);
+      }
+    }
+  }, [autoPlayEnabled, currentVideo, handleVideoEnd]);
 
   const toggleAutoPlay = () => {
     setAutoPlayEnabled(!autoPlayEnabled);
