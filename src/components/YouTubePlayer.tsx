@@ -39,7 +39,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   const effectiveStartTime = startTime || 0;
   
   // Track time when window focus changes
-  const lastVisibilityChangeTimeRef = useRef<number>(Date.now());
   const lastRecordedPlaybackTimeRef = useRef<number | null>(null);
   
   // Store player state for orientation changes
