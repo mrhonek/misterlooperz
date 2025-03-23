@@ -41,6 +41,11 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   // Add a ref to track if video ended while page was not visible
   const pendingAutoPlayRef = useRef(false);
   
+  // Add refs to track video timeline independently of YouTube player
+  const videoStartedAtRef = useRef<number | null>(null);
+  const expectedDurationRef = useRef<number | null>(null);
+  const autoPlayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Added debug logs
   console.log('YouTubePlayer rendering with props:', {
     videoId,
@@ -284,6 +289,61 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     };
   }, [isPlaying, endTime, checkEndTime]);
 
+  // Start or stop the auto play timer based on playing state and auto play setting
+  useEffect(() => {
+    // Clear any existing timer
+    if (autoPlayTimerRef.current) {
+      clearTimeout(autoPlayTimerRef.current);
+      autoPlayTimerRef.current = null;
+    }
+    
+    // Only set up timer if auto play is enabled and we have an end time
+    if (autoPlayEnabled && endTime && isPlaying) {
+      // Calculate the expected video duration
+      const videoDuration = endTime - effectiveStartTime;
+      expectedDurationRef.current = videoDuration;
+      
+      // Record when we started playing this segment
+      videoStartedAtRef.current = Date.now();
+      
+      console.log('Setting up auto play timer for', videoDuration, 'seconds');
+      
+      // Set a timer for slightly after the video should end
+      autoPlayTimerRef.current = setTimeout(() => {
+        console.log('Auto play timer fired - moving to next video');
+        
+        // Clean up
+        videoStartedAtRef.current = null;
+        expectedDurationRef.current = null;
+        
+        // Go to next video
+        if (onEnd) {
+          onEnd();
+        }
+      }, (videoDuration * 1000) + 500); // Add a small buffer
+    }
+    
+    // Clean up on unmount or when dependencies change
+    return () => {
+      if (autoPlayTimerRef.current) {
+        clearTimeout(autoPlayTimerRef.current);
+        autoPlayTimerRef.current = null;
+      }
+    };
+  }, [autoPlayEnabled, endTime, effectiveStartTime, isPlaying, onEnd]);
+  
+  // Reset timers when video ID changes
+  useEffect(() => {
+    // Reset timing references when video changes
+    videoStartedAtRef.current = null;
+    expectedDurationRef.current = null;
+    
+    if (autoPlayTimerRef.current) {
+      clearTimeout(autoPlayTimerRef.current);
+      autoPlayTimerRef.current = null;
+    }
+  }, [videoId]);
+
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {
     playerRef.current = event.target;
@@ -346,14 +406,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     // Check player state and update isPlaying
     if (event.data === PLAYER_STATE.ENDED) {
       if (autoPlayEnabled && onEnd) {
-        // Check if document is visible
-        if (document.visibilityState === 'visible') {
-          onEnd();
-        } else {
-          // If not visible, mark that we need to auto play when tab becomes visible
-          console.log('Setting pendingAutoPlay flag since document is not visible');
-          pendingAutoPlayRef.current = true;
-        }
+        // If auto play is enabled, move to next video
+        onEnd();
       } else if (!autoPlayEnabled) {
         // When not in autoplay mode and video ends, loop back to start
         try {
@@ -371,10 +425,45 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
         setIsPlaying(false);
       }
     } else if (event.data === PLAYER_STATE.PLAYING) {
+      // When playing starts or resumes, update our tracking
+      if (autoPlayEnabled && endTime) {
+        // Calculate expected duration
+        const videoDuration = endTime - effectiveStartTime;
+        expectedDurationRef.current = videoDuration;
+        
+        // Record when we started or resumed playing
+        videoStartedAtRef.current = Date.now();
+        
+        // Clear any existing timer
+        if (autoPlayTimerRef.current) {
+          clearTimeout(autoPlayTimerRef.current);
+        }
+        
+        // Set a timer for when this video should end
+        autoPlayTimerRef.current = setTimeout(() => {
+          console.log('Auto play timer fired - moving to next video');
+          
+          // Clean up
+          videoStartedAtRef.current = null;
+          expectedDurationRef.current = null;
+          
+          // Go to next video
+          if (onEnd) {
+            onEnd();
+          }
+        }, (videoDuration * 1000) + 500); // Add a small buffer
+      }
+      
       // Reset pending auto play flag when playback starts
       pendingAutoPlayRef.current = false;
       setIsPlaying(true);
     } else if (event.data === PLAYER_STATE.PAUSED) {
+      // If manually paused, clear the auto play timer
+      if (autoPlayTimerRef.current) {
+        clearTimeout(autoPlayTimerRef.current);
+        autoPlayTimerRef.current = null;
+      }
+      
       setIsPlaying(false);
     }
   };
