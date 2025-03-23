@@ -45,6 +45,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   const videoStartedAtRef = useRef<number | null>(null);
   const expectedDurationRef = useRef<number | null>(null);
   const autoPlayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastVisibilityChangeTimeRef = useRef<number>(Date.now());
+  const shouldAdvanceVideoRef = useRef<boolean>(false);
   
   // Added debug logs
   console.log('YouTubePlayer rendering with props:', {
@@ -186,19 +188,34 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     playerStateRef.current.isPlaying = isPlaying;
   }, [currentTime, isPlaying]);
 
-  // Update the visibility change handler to check for pending auto play
+  // Create a special visibility change handler for auto play
   useEffect(() => {
     const handleVisibilityChange = () => {
+      const currentTimestamp = Date.now();
+      const wasHidden = document.visibilityState !== 'visible';
+      
+      // Always track the time of the visibility change
+      lastVisibilityChangeTimeRef.current = currentTimestamp;
+      
       if (document.visibilityState === 'visible') {
-        // Page is now visible
-        if (pendingAutoPlayRef.current && autoPlayEnabled && onEnd) {
-          // If we have a pending auto play action, trigger it now
-          console.log('Triggering pending auto play after tab becomes visible');
-          pendingAutoPlayRef.current = false;
-          onEnd();
+        console.log('Page became visible');
+        
+        // Check if we need to advance to the next video
+        if (shouldAdvanceVideoRef.current) {
+          console.log('Auto play: Detected we should advance to next video');
+          shouldAdvanceVideoRef.current = false;
+          
+          // Execute after a short delay to ensure player is ready
+          setTimeout(() => {
+            if (onEnd) {
+              console.log('Auto play: Advancing to next video after visibility change');
+              onEnd();
+            }
+          }, 100);
         }
-        // Continue playback if it was playing (existing logic)
-        else if (isPlaying && playerRef.current) {
+        
+        // Resume normal playback for non-auto play scenarios
+        if (isPlaying && playerRef.current) {
           try {
             // @ts-ignore
             playerRef.current.playVideo();
@@ -206,54 +223,169 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
             console.error('Error resuming playback after visibility change:', err);
           }
         }
+      } else if (document.visibilityState === 'hidden') {
+        console.log('Page became hidden');
+        // If we have auto play enabled and this video has a defined end time
+        if (autoPlayEnabled && endTime && isPlaying) {
+          try {
+            // Check current time and calculate expected finish time
+            if (playerRef.current) {
+              // @ts-ignore
+              const currentVideoTime = playerRef.current.getCurrentTime();
+              const timeRemainingInSeconds = endTime - currentVideoTime;
+              
+              console.log('Auto play: Video should end in', timeRemainingInSeconds, 'seconds');
+              
+              // Set flag to check when page becomes visible again
+              if (timeRemainingInSeconds <= 0) {
+                // Should advance immediately
+                shouldAdvanceVideoRef.current = true;
+              } else {
+                // Schedule the check for when we return
+                const expectedEndTimestamp = currentTimestamp + (timeRemainingInSeconds * 1000);
+                
+                // Store the fact that we need to check this when tab becomes visible again
+                localStorage.setItem('video_expected_end_' + videoId, expectedEndTimestamp.toString());
+                localStorage.setItem('video_last_playing', videoId);
+              }
+            }
+          } catch (err) {
+            console.error('Error calculating auto play timing on visibility change:', err);
+          }
+        }
       }
     };
-
+    
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isPlaying, autoPlayEnabled, onEnd]);
-
-  // Check end time - this is more efficient as a memoized function
-  const checkEndTime = useCallback(() => {
+  }, [isPlaying, autoPlayEnabled, endTime, onEnd, videoId]);
+  
+  // Check for pending auto play when component mounts or video ID changes
+  useEffect(() => {
     try {
-      const player = playerRef.current;
-      if (player && endTime && isPlaying) {
-        // @ts-ignore - Ignore TypeScript errors for YouTube API calls
-        const time = player.getCurrentTime();
-        
-        // Check if we've reached or passed the end time
-        if (time >= endTime) {
-          if (autoPlayEnabled) {
-            // In auto-play mode, trigger onEnd to go to next video
-            if (onEnd) {
-              // Check if document is visible
-              if (document.visibilityState === 'visible') {
-                onEnd();
-              } else {
-                // If not visible, mark that we need to auto play when tab becomes visible
-                console.log('Setting pendingAutoPlay flag since document is not visible');
-                pendingAutoPlayRef.current = true;
-              }
-            }
-          } else {
-            // In loop mode, loop back to start time
-            // @ts-ignore - Ignore TypeScript errors for YouTube API calls
-            player.seekTo(effectiveStartTime, true);
-            // Ensure player continues playing after seeking
-            // @ts-ignore
-            player.playVideo();
+      const lastPlayingVideoId = localStorage.getItem('video_last_playing');
+      if (lastPlayingVideoId === videoId && autoPlayEnabled) {
+        const expectedEndTimestampStr = localStorage.getItem('video_expected_end_' + videoId);
+        if (expectedEndTimestampStr) {
+          const expectedEndTimestamp = parseInt(expectedEndTimestampStr, 10);
+          const currentTimestamp = Date.now();
+          
+          // If the expected end time has passed while we were away
+          if (currentTimestamp > expectedEndTimestamp) {
+            console.log('Auto play: Video ended while page was hidden, advancing now');
+            shouldAdvanceVideoRef.current = true;
           }
         }
       }
+      
+      // Clean up storage
+      localStorage.removeItem('video_expected_end_' + videoId);
     } catch (err) {
-      console.error('Error checking video time:', err);
+      console.error('Error checking for pending auto play:', err);
     }
-  }, [endTime, effectiveStartTime, isPlaying, onEnd, autoPlayEnabled]);
+  }, [videoId, autoPlayEnabled]);
+  
+  // For robustness, set up a heartbeat check that runs even when tab is inactive
+  useEffect(() => {
+    // Create a broadcast channel for cross-tab communication
+    let broadcastChannel: BroadcastChannel | null = null;
+    try {
+      broadcastChannel = new BroadcastChannel('video_heartbeat');
+      
+      broadcastChannel.onmessage = (event) => {
+        // If we receive a heartbeat and we're supposed to advance
+        if (event.data.type === 'heartbeat' && shouldAdvanceVideoRef.current && onEnd) {
+          console.log('Auto play: Advancing to next video after heartbeat');
+          shouldAdvanceVideoRef.current = false;
+          onEnd();
+        }
+      };
+      
+      // Create a worker to send heartbeats that won't be throttled as much
+      const workerCode = `
+        setInterval(() => {
+          self.postMessage({type: 'heartbeat', timestamp: Date.now()});
+        }, 1000);
+      `;
+      
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      const workerUrl = URL.createObjectURL(blob);
+      const worker = new Worker(workerUrl);
+      
+      worker.onmessage = (event) => {
+        if (event.data.type === 'heartbeat') {
+          broadcastChannel?.postMessage({
+            type: 'heartbeat',
+            timestamp: event.data.timestamp,
+            videoId
+          });
+          
+          // Also check if we need to advance video based on our calculations
+          if (autoPlayEnabled && endTime && isPlaying) {
+            try {
+              // Only check if we've been away for a while
+              const timeSinceVisibilityChange = Date.now() - lastVisibilityChangeTimeRef.current;
+              if (document.visibilityState !== 'visible' && timeSinceVisibilityChange > 1000) {
+                // @ts-ignore
+                const currentVideoTime = playerRef.current?.getCurrentTime() || 0;
+                if (currentVideoTime >= endTime) {
+                  console.log('Auto play: Detected end time reached during heartbeat');
+                  shouldAdvanceVideoRef.current = true;
+                }
+              }
+            } catch (err) {
+              // Ignore errors during background checks
+            }
+          }
+        }
+      };
+      
+      return () => {
+        worker.terminate();
+        URL.revokeObjectURL(workerUrl);
+        broadcastChannel?.close();
+      };
+    } catch (err) {
+      // Browser might not support Workers or BroadcastChannel
+      console.error('Error setting up background heartbeat:', err);
+      
+      // Fallback to regular interval
+      const heartbeatInterval = setInterval(() => {
+        if (autoPlayEnabled && endTime && isPlaying && document.visibilityState !== 'visible') {
+          try {
+            // @ts-ignore
+            const currentVideoTime = playerRef.current?.getCurrentTime() || 0;
+            if (currentVideoTime >= endTime) {
+              shouldAdvanceVideoRef.current = true;
+            }
+          } catch (err) {
+            // Ignore errors during background checks
+          }
+        }
+      }, 1000);
+      
+      return () => {
+        clearInterval(heartbeatInterval);
+      };
+    }
+  }, [videoId, autoPlayEnabled, endTime, isPlaying, onEnd]);
 
-  // Set up a single interval for both time update and end time checking
+  // Reset timers when video ID changes
+  useEffect(() => {
+    // Reset timing references when video changes
+    videoStartedAtRef.current = null;
+    expectedDurationRef.current = null;
+    
+    if (autoPlayTimerRef.current) {
+      clearTimeout(autoPlayTimerRef.current);
+      autoPlayTimerRef.current = null;
+    }
+  }, [videoId]);
+
+  // Add back the time update interval
   useEffect(() => {
     // Clear any existing interval
     if (intervalRef.current) {
@@ -270,15 +402,12 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
             const time = playerRef.current.getCurrentTime();
             setCurrentTime(time);
             
-            // Only check end time when needed
-            if (endTime) {
-              checkEndTime();
-            }
+            // Check end time logic now handled in other effects
           }
         } catch (err) {
           console.error('Error in player interval:', err);
         }
-      }, 1000); // Check once per second instead of 500ms
+      }, 1000); // Check once per second
     }
 
     return () => {
@@ -287,62 +416,37 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
         intervalRef.current = null;
       }
     };
-  }, [isPlaying, endTime, checkEndTime]);
-
-  // Start or stop the auto play timer based on playing state and auto play setting
-  useEffect(() => {
-    // Clear any existing timer
-    if (autoPlayTimerRef.current) {
-      clearTimeout(autoPlayTimerRef.current);
-      autoPlayTimerRef.current = null;
-    }
-    
-    // Only set up timer if auto play is enabled and we have an end time
-    if (autoPlayEnabled && endTime && isPlaying) {
-      // Calculate the expected video duration
-      const videoDuration = endTime - effectiveStartTime;
-      expectedDurationRef.current = videoDuration;
-      
-      // Record when we started playing this segment
-      videoStartedAtRef.current = Date.now();
-      
-      console.log('Setting up auto play timer for', videoDuration, 'seconds');
-      
-      // Set a timer for slightly after the video should end
-      autoPlayTimerRef.current = setTimeout(() => {
-        console.log('Auto play timer fired - moving to next video');
-        
-        // Clean up
-        videoStartedAtRef.current = null;
-        expectedDurationRef.current = null;
-        
-        // Go to next video
-        if (onEnd) {
-          onEnd();
-        }
-      }, (videoDuration * 1000) + 500); // Add a small buffer
-    }
-    
-    // Clean up on unmount or when dependencies change
-    return () => {
-      if (autoPlayTimerRef.current) {
-        clearTimeout(autoPlayTimerRef.current);
-        autoPlayTimerRef.current = null;
-      }
-    };
-  }, [autoPlayEnabled, endTime, effectiveStartTime, isPlaying, onEnd]);
+  }, [isPlaying]);
   
-  // Reset timers when video ID changes
-  useEffect(() => {
-    // Reset timing references when video changes
-    videoStartedAtRef.current = null;
-    expectedDurationRef.current = null;
-    
-    if (autoPlayTimerRef.current) {
-      clearTimeout(autoPlayTimerRef.current);
-      autoPlayTimerRef.current = null;
+  // Check end time with local checking logic
+  const checkEndTime = useCallback(() => {
+    try {
+      const player = playerRef.current;
+      if (player && endTime && isPlaying) {
+        // @ts-ignore - Ignore TypeScript errors for YouTube API calls
+        const time = player.getCurrentTime();
+        
+        // Check if we've reached or passed the end time
+        if (time >= endTime) {
+          if (autoPlayEnabled) {
+            // In auto-play mode, trigger onEnd to go to next video
+            if (onEnd) {
+              onEnd();
+            }
+          } else {
+            // In loop mode, loop back to start time
+            // @ts-ignore - Ignore TypeScript errors for YouTube API calls
+            player.seekTo(effectiveStartTime, true);
+            // Ensure player continues playing after seeking
+            // @ts-ignore
+            player.playVideo();
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error checking video time:', err);
     }
-  }, [videoId]);
+  }, [endTime, effectiveStartTime, isPlaying, onEnd, autoPlayEnabled]);
 
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {
