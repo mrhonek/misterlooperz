@@ -18,6 +18,18 @@ function App() {
   // Use a ref for isMobile state to avoid causing unnecessary player re-renders
   const isMobileRef = useRef(window.innerWidth <= 768);
 
+  // Add background play tracking system
+  const [backgroundPlayTimerId, setBackgroundPlayTimerId] = useState<number | null>(null);
+  const backgroundPlayStateRef = useRef<{
+    videoEndTimestamp: number | null;
+    currentVideoId: string | null;
+    videoIndex: number | null;
+  }>({
+    videoEndTimestamp: null,
+    currentVideoId: null,
+    videoIndex: null
+  });
+
   useEffect(() => {
     const savedVideos = localStorage.getItem('videos');
     const savedAutoPlay = localStorage.getItem('autoPlayEnabled');
@@ -204,6 +216,89 @@ function App() {
       }
     }
   };
+
+  // Set up background play worker that can run even when tab is not focused
+  useEffect(() => {
+    // Clean up any existing timer
+    if (backgroundPlayTimerId) {
+      window.clearTimeout(backgroundPlayTimerId);
+    }
+    
+    // Only set up the timer if we have auto play enabled, a current video with end time, and videos in the playlist
+    if (autoPlayEnabled && currentVideo && currentVideo.endTime && videos.length > 0) {
+      try {
+        // Calculate when this video should end
+        const now = Date.now();
+        const videoStartTime = currentVideo.startTime || 0;
+        const videoEndTime = currentVideo.endTime;
+        const videoDuration = videoEndTime - videoStartTime;
+        
+        // Store the video that's currently playing and when it should end
+        const videoEndTimestamp = now + (videoDuration * 1000);
+        backgroundPlayStateRef.current = {
+          videoEndTimestamp,
+          currentVideoId: currentVideo.videoId,
+          videoIndex: videos.findIndex(v => v.id === currentVideo.id)
+        };
+        
+        console.log('Background play: Setting up timer for', videoDuration, 'seconds');
+        
+        // Set a timer for when this video should end
+        const timerId = window.setTimeout(() => {
+          console.log('Background play: Timer fired, checking if video should advance');
+          
+          // When the timer fires, check if the same video is playing
+          if (currentVideo && 
+              currentVideo.videoId === backgroundPlayStateRef.current.currentVideoId) {
+            console.log('Background play: Same video still playing, advancing to next video');
+            handleVideoEnd();
+          }
+        }, videoDuration * 1000);
+        
+        // Store the timer ID for cleanup
+        setBackgroundPlayTimerId(timerId);
+      } catch (error) {
+        console.error('Error setting up background play timer:', error);
+      }
+    }
+    
+    return () => {
+      // Clean up timer on unmount or when dependencies change
+      if (backgroundPlayTimerId) {
+        window.clearTimeout(backgroundPlayTimerId);
+      }
+    };
+  }, [autoPlayEnabled, currentVideo, videos, backgroundPlayTimerId]);
+  
+  // Add a visibility change handler to check if a video should have advanced while tab was hidden
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      // Only check when tab becomes visible
+      if (document.visibilityState === 'visible') {
+        const now = Date.now();
+        
+        // If we have auto play enabled and a stored end timestamp
+        if (autoPlayEnabled && 
+            backgroundPlayStateRef.current.videoEndTimestamp && 
+            currentVideo) {
+          
+          // Check if this video should have ended while the tab was hidden
+          if (now > backgroundPlayStateRef.current.videoEndTimestamp) {
+            console.log('Background play: Video should have ended while tab was hidden, advancing now');
+            
+            // Advance to the next video
+            handleVideoEnd();
+          }
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [autoPlayEnabled, currentVideo]);
 
   const toggleAutoPlay = () => {
     setAutoPlayEnabled(!autoPlayEnabled);
