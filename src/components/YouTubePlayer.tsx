@@ -192,7 +192,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   useEffect(() => {
     const handleVisibilityChange = () => {
       const currentTimestamp = Date.now();
-      const wasHidden = document.visibilityState !== 'visible';
       
       // Always track the time of the visibility change
       lastVisibilityChangeTimeRef.current = currentTimestamp;
@@ -418,36 +417,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     };
   }, [isPlaying]);
   
-  // Check end time with local checking logic
-  const checkEndTime = useCallback(() => {
-    try {
-      const player = playerRef.current;
-      if (player && endTime && isPlaying) {
-        // @ts-ignore - Ignore TypeScript errors for YouTube API calls
-        const time = player.getCurrentTime();
-        
-        // Check if we've reached or passed the end time
-        if (time >= endTime) {
-          if (autoPlayEnabled) {
-            // In auto-play mode, trigger onEnd to go to next video
-            if (onEnd) {
-              onEnd();
-            }
-          } else {
-            // In loop mode, loop back to start time
-            // @ts-ignore - Ignore TypeScript errors for YouTube API calls
-            player.seekTo(effectiveStartTime, true);
-            // Ensure player continues playing after seeking
-            // @ts-ignore
-            player.playVideo();
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Error checking video time:', err);
-    }
-  }, [endTime, effectiveStartTime, isPlaying, onEnd, autoPlayEnabled]);
-
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {
     playerRef.current = event.target;
