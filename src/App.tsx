@@ -7,6 +7,7 @@ import Playlist from './components/Playlist';
 import { Video } from './types.ts';
 import { fetchVideoInfo } from './utils/youtubeUtils';
 import { truncateText } from './utils/stringUtils';
+import { registerServiceWorker, startVideoTimer, stopTimer, checkTimers, getVideoIdForTimer } from './utils/serviceWorkerUtils';
 
 function App() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -19,7 +20,7 @@ function App() {
   const isMobileRef = useRef(window.innerWidth <= 768);
 
   // Add background play tracking system
-  const [backgroundPlayTimerId, setBackgroundPlayTimerId] = useState<number | null>(null);
+  const [backgroundPlayTimerId, setBackgroundPlayTimerId] = useState<string | null>(null);
   const backgroundPlayStateRef = useRef<{
     videoEndTimestamp: number | null;
     currentVideoId: string | null;
@@ -36,6 +37,63 @@ function App() {
   
   // Detect browser for Chrome-specific optimizations
   const [isChrome, setIsChrome] = useState(false);
+  // Service worker support tracking
+  const [swAvailable, setSwAvailable] = useState(false);
+  
+  // Register the service worker on app load
+  useEffect(() => {
+    const initServiceWorker = async () => {
+      const registered = await registerServiceWorker();
+      setSwAvailable(registered);
+      console.log('Service Worker available:', registered);
+    };
+    
+    initServiceWorker().catch(console.error);
+  }, []);
+
+  // Listen for timer complete events from the service worker
+  useEffect(() => {
+    const handleTimerComplete = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Timer complete event received:', customEvent.detail);
+      
+      // Handle different message types
+      if (customEvent.detail.type === 'TIMER_COMPLETE') {
+        const { videoId, timerId } = customEvent.detail;
+        
+        // Verify this is for the current video
+        if (currentVideo && currentVideo.videoId === videoId) {
+          console.log('Service worker timer completed for current video, advancing');
+          handleVideoEnd();
+        }
+      }
+      else if (customEvent.detail.type === 'TIMERS_COMPLETED') {
+        const { timers } = customEvent.detail;
+        
+        // Check if any completed timer matches the current video
+        if (currentVideo && timers.some((timer: any) => timer.videoId === currentVideo.videoId)) {
+          console.log('Service worker reports timers completed for current video, advancing');
+          handleVideoEnd();
+        }
+      }
+    };
+    
+    // Add event listener
+    window.addEventListener('sw-timer-complete', handleTimerComplete);
+    
+    // Set up periodic checks for timers when using service worker
+    let checkInterval: NodeJS.Timeout | null = null;
+    if (swAvailable) {
+      checkInterval = setInterval(() => {
+        checkTimers();
+      }, 10000); // Check every 10 seconds
+    }
+    
+    return () => {
+      window.removeEventListener('sw-timer-complete', handleTimerComplete);
+      if (checkInterval) clearInterval(checkInterval);
+    };
+  }, [swAvailable, currentVideo]);
   
   // Detect if we're using Chrome
   useEffect(() => {
@@ -108,6 +166,54 @@ function App() {
     };
   }, []);
 
+  // Set up background timer with service worker when video or autoplay changes
+  useEffect(() => {
+    // Clean up any existing timer
+    if (backgroundPlayTimerId) {
+      stopTimer(backgroundPlayTimerId);
+      setBackgroundPlayTimerId(null);
+    }
+    
+    // Only set up the timer if we have auto play enabled, a current video with end time, service worker is available
+    if (autoPlayEnabled && currentVideo && currentVideo.endTime && videos.length > 0 && swAvailable) {
+      try {
+        // Calculate when this video should end
+        const videoStartTime = currentVideo.startTime || 0;
+        const videoEndTime = currentVideo.endTime;
+        const videoDuration = videoEndTime - videoStartTime;
+        
+        // Add 1 second buffer
+        const durationMs = videoDuration * 1000 + 1000;
+        
+        // Start a service worker timer
+        const timerId = startVideoTimer(currentVideo.videoId, durationMs);
+        
+        if (timerId) {
+          console.log('Started service worker timer for video', currentVideo.videoId, 'duration:', durationMs);
+          setBackgroundPlayTimerId(timerId);
+        }
+      } catch (error) {
+        console.error('Error setting up service worker timer:', error);
+      }
+    }
+  }, [autoPlayEnabled, currentVideo, videos, swAvailable]);
+  
+  // Visibility change handler to check with service worker
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && swAvailable) {
+        // When tab becomes visible, check if any timers completed
+        checkTimers();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [swAvailable]);
+
   const handleAddVideo = async (videoUrl: string, startTime: number | null, endTime: number | null) => {
     // Extract video ID from YouTube URL
     const videoId = extractVideoId(videoUrl);
@@ -172,7 +278,15 @@ function App() {
   };
 
   const handlePlayVideo = (video: Video) => {
+    // Update current video
     setCurrentVideo(video);
+    
+    // Set up a new timer if needed
+    if (backgroundPlayTimerId) {
+      stopTimer(backgroundPlayTimerId);
+      setBackgroundPlayTimerId(null);
+    }
+    
     setTimeout(() => {
       const player = document.querySelector('iframe')?.contentWindow;
       if (player) {
@@ -231,192 +345,6 @@ function App() {
       }
     }
   };
-
-  // Set up background play worker with Chrome-specific optimizations
-  useEffect(() => {
-    // Clean up any existing timer
-    if (backgroundPlayTimerId) {
-      window.clearTimeout(backgroundPlayTimerId);
-    }
-    
-    // Only set up the timer if we have auto play enabled, a current video with end time, and videos in the playlist
-    if (autoPlayEnabled && currentVideo && currentVideo.endTime && videos.length > 0) {
-      try {
-        // Calculate when this video should end
-        const now = Date.now();
-        const videoStartTime = currentVideo.startTime || 0;
-        const videoEndTime = currentVideo.endTime;
-        const videoDuration = videoEndTime - videoStartTime;
-        
-        // Store the video that's currently playing and when it should end
-        const videoEndTimestamp = now + (videoDuration * 1000);
-        backgroundPlayStateRef.current = {
-          videoEndTimestamp,
-          currentVideoId: currentVideo.videoId,
-          videoIndex: videos.findIndex(v => v.id === currentVideo.id),
-          lastCheckTime: now,
-          catchupMode: false
-        };
-        
-        console.log('Background play: Setting up timer for', videoDuration, 'seconds');
-        
-        // Store current video state in localStorage to survive tab reloads and browser restarts
-        const persistentState = {
-          videoId: currentVideo.videoId,
-          startedAt: now,
-          endTimestamp: videoEndTimestamp,
-          videoIndex: videos.findIndex(v => v.id === currentVideo.id)
-        };
-        localStorage.setItem('misterlooperz_bg_state', JSON.stringify(persistentState));
-        
-        // Chrome optimization - use shorter intervals for more accurate timing
-        if (isChrome) {
-          // For Chrome, we'll use a heartbeat interval instead of setTimeout
-          // This is more reliable in Chrome's background tab throttling
-          const heartbeatId = window.setInterval(() => {
-            // Current time
-            const currentTime = Date.now();
-            
-            // Check if video should have ended
-            if (currentTime >= backgroundPlayStateRef.current.videoEndTimestamp!) {
-              console.log('Chrome background play: Heartbeat detected video should end');
-              
-              // Check if the document is visible
-              if (document.visibilityState === 'visible') {
-                handleVideoEnd();
-                // Clear this interval
-                window.clearInterval(heartbeatId);
-              } else {
-                // Mark that we need to advance when tab becomes visible
-                backgroundPlayStateRef.current.catchupMode = true;
-                // Keep the interval running to check again
-              }
-            }
-          }, 1000); // Check every second
-          
-          // Store the timer ID
-          setBackgroundPlayTimerId(heartbeatId as unknown as number);
-        } else {
-          // For other browsers, the setTimeout approach works fine
-          const timerId = window.setTimeout(() => {
-            console.log('Background play: Timer fired, checking if video should advance');
-            
-            // When the timer fires, check if the same video is playing
-            if (currentVideo && 
-                currentVideo.videoId === backgroundPlayStateRef.current.currentVideoId) {
-              console.log('Background play: Same video still playing, advancing to next video');
-              handleVideoEnd();
-            }
-          }, videoDuration * 1000);
-          
-          // Store the timer ID for cleanup
-          setBackgroundPlayTimerId(timerId);
-        }
-      } catch (error) {
-        console.error('Error setting up background play timer:', error);
-      }
-    }
-    
-    return () => {
-      // Clean up timer on unmount or when dependencies change
-      if (backgroundPlayTimerId) {
-        if (isChrome) {
-          window.clearInterval(backgroundPlayTimerId);
-        } else {
-          window.clearTimeout(backgroundPlayTimerId);
-        }
-      }
-    };
-  }, [autoPlayEnabled, currentVideo, videos, backgroundPlayTimerId, isChrome]);
-  
-  // Add a visibility change handler to check if a video should have advanced while tab was hidden
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      // Only check when tab becomes visible
-      if (document.visibilityState === 'visible') {
-        const now = Date.now();
-        
-        // Check local storage for persistent state (helps across page reloads)
-        try {
-          const persistentStateStr = localStorage.getItem('misterlooperz_bg_state');
-          if (persistentStateStr) {
-            const persistentState = JSON.parse(persistentStateStr);
-            
-            // If the end timestamp has passed
-            if (now > persistentState.endTimestamp) {
-              console.log('Background play: Detected via localStorage that video should have ended');
-              
-              // See if this is the same playlist position
-              const currentIndex = currentVideo ? videos.findIndex(v => v.id === currentVideo.id) : -1;
-              
-              // If we're still on the same video that should have ended
-              if (currentVideo?.videoId === persistentState.videoId || 
-                  currentIndex === persistentState.videoIndex) {
-                handleVideoEnd();
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Error checking persistent state:', err);
-        }
-        
-        // Chrome-specific catch-up mechanism
-        if (isChrome && backgroundPlayStateRef.current.catchupMode) {
-          console.log('Chrome background play: Catch-up mode detected, advancing video');
-          backgroundPlayStateRef.current.catchupMode = false;
-          handleVideoEnd();
-        }
-        
-        // Regular timestamp check (backup)
-        if (autoPlayEnabled && 
-            backgroundPlayStateRef.current.videoEndTimestamp && 
-            currentVideo) {
-          
-          // Check if this video should have ended while the tab was hidden
-          if (now > backgroundPlayStateRef.current.videoEndTimestamp) {
-            console.log('Background play: Video should have ended while tab was hidden, advancing now');
-            
-            // Advance to the next video
-            handleVideoEnd();
-          }
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [autoPlayEnabled, currentVideo, videos, isChrome]);
-  
-  // Do an immediate check on mount to handle case where video should have played while page was closed
-  useEffect(() => {
-    if (autoPlayEnabled && currentVideo) {
-      // Check localStorage for any videos that should have played
-      try {
-        const persistentStateStr = localStorage.getItem('misterlooperz_bg_state');
-        if (persistentStateStr) {
-          const persistentState = JSON.parse(persistentStateStr);
-          const now = Date.now();
-          
-          // If more than the video duration has passed
-          if (persistentState.endTimestamp && now > persistentState.endTimestamp) {
-            // Only if autoplay is enabled and this is the same video
-            if (autoPlayEnabled && currentVideo.videoId === persistentState.videoId) {
-              console.log('Initial check: Video should have ended while page was closed');
-              // Use a short delay to ensure everything is ready
-              setTimeout(() => {
-                handleVideoEnd();
-              }, 1000);
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Error in initial state check:', err);
-      }
-    }
-  }, [autoPlayEnabled, currentVideo, handleVideoEnd]);
 
   const toggleAutoPlay = () => {
     setAutoPlayEnabled(!autoPlayEnabled);
