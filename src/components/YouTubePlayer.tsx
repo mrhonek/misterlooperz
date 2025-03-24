@@ -41,8 +41,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   
   // Add a flag to track user-initiated pauses
   const userPausedRef = useRef(false);
-  // Add timeout reference for clearing the user pause flag
-  const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Track if we're in a system/auto pause vs user pause
+  const systemPausedRef = useRef(false);
   
   // Added debug logs
   console.log('YouTubePlayer rendering with props:', {
@@ -208,7 +208,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
             lastRecordedPlaybackTimeRef.current = time;
             
             // Check if we need to manually end the video and trigger custom behavior
-            // Only proceed if user hasn't just paused
+            // Only proceed if user hasn't explicitly paused
             if (endTime && time >= endTime && !userPausedRef.current) {
               if (autoPlayEnabled) {
                 // In auto-play mode, trigger onEnd to go to next video
@@ -365,11 +365,15 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     } else if (event.data === PLAYER_STATE.PLAYING) {
       setIsPlaying(true);
       
-      // Clear user paused flag when playing starts
-      userPausedRef.current = false;
-      if (pauseTimeoutRef.current) {
-        clearTimeout(pauseTimeoutRef.current);
-        pauseTimeoutRef.current = null;
+      // Only clear user pause flag if this play event wasn't triggered by our auto-play logic
+      // We can determine this by checking if we were in system pause mode
+      if (!systemPausedRef.current) {
+        console.log('User explicitly resumed playback - clearing pause flag');
+        userPausedRef.current = false;
+      } else {
+        // Reset system pause flag
+        console.log('System resumed playback - maintaining user pause state');
+        systemPausedRef.current = false;
       }
       
       // Use the more reliable unmute helper
@@ -382,9 +386,11 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
           const currentTime = playerRef.current.getCurrentTime();
           if (currentTime >= endTime) {
             if (autoPlayEnabled && onEnd) {
+              systemPausedRef.current = true; // Mark as system pause to preserve user pause state
               // Move to next video immediately if we're already past the end time
               onEnd();
             } else {
+              systemPausedRef.current = true; // Mark as system pause to preserve user pause state
               // In loop mode, loop back to start
               // @ts-ignore
               playerRef.current.seekTo(effectiveStartTime, true);
@@ -397,21 +403,15 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     } else if (event.data === PLAYER_STATE.PAUSED) {
       setIsPlaying(false);
       
-      // Set user paused flag and clear after a delay
-      userPausedRef.current = true;
-      console.log('User paused video - preventing auto advance');
-      
-      // Clear any existing timeout
-      if (pauseTimeoutRef.current) {
-        clearTimeout(pauseTimeoutRef.current);
+      // IMPORTANT: Only set user paused flag if not a system-initiated pause
+      if (!systemPausedRef.current) {
+        userPausedRef.current = true;
+        console.log('User explicitly paused video - preventing auto advance');
+      } else {
+        // Reset system pause flag
+        console.log('System paused video - not affecting user pause state');
+        systemPausedRef.current = false;
       }
-      
-      // Clear the flag after a delay to allow normal operation later
-      pauseTimeoutRef.current = setTimeout(() => {
-        userPausedRef.current = false;
-        pauseTimeoutRef.current = null;
-        console.log('User pause protection cleared');
-      }, 5000); // Protect for 5 seconds after a pause
     }
   };
   
@@ -436,11 +436,13 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     }, 3000);
   };
 
-  // Handlers for play/pause buttons
+  // Handlers for play/pause buttons - update to handle the user pause flag
   const handlePlay = useCallback(() => {
     try {
       const player = playerRef.current;
       if (player) {
+        // Clear user pause flag when play is explicitly pressed
+        userPausedRef.current = false;
         // @ts-ignore - Ignore TypeScript errors for YouTube API calls
         player.playVideo();
       }
@@ -453,6 +455,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     try {
       const player = playerRef.current;
       if (player) {
+        // Set user pause flag when pause is explicitly pressed
+        userPausedRef.current = true;
         // @ts-ignore - Ignore TypeScript errors for YouTube API calls
         player.pauseVideo();
       }
@@ -550,16 +554,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     zIndex: 10,
     display: playerError ? 'block' : 'none'
   };
-
-  // Add cleanup for pause timeout
-  useEffect(() => {
-    return () => {
-      if (pauseTimeoutRef.current) {
-        clearTimeout(pauseTimeoutRef.current);
-        pauseTimeoutRef.current = null;
-      }
-    };
-  }, []);
 
   return (
     <div>
