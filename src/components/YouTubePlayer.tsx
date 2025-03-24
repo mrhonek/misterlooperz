@@ -232,6 +232,51 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     };
   }, [isPlaying, endTime, effectiveStartTime, onEnd, autoPlayEnabled]);
 
+  // More aggressive unmute helper function
+  const ensureVideoUnmuted = useCallback(() => {
+    if (!playerRef.current) return;
+    
+    try {
+      // Try multiple times to ensure unmuting works
+      const attemptUnmute = (attemptsLeft = 3) => {
+        if (!playerRef.current) return;
+        
+        // @ts-ignore - Check if muted
+        const isMuted = playerRef.current.isMuted();
+        if (isMuted) {
+          console.log('Ensuring video is unmuted, attempts left:', attemptsLeft);
+          // @ts-ignore
+          playerRef.current.unMute();
+          // @ts-ignore - Set to reasonable volume
+          playerRef.current.setVolume(80);
+          
+          // If this is not the last attempt, schedule another check
+          if (attemptsLeft > 1) {
+            setTimeout(() => attemptUnmute(attemptsLeft - 1), 500);
+          }
+        }
+      };
+      
+      // Start unmute attempts
+      attemptUnmute();
+    } catch (err) {
+      console.error('Error ensuring video is unmuted:', err);
+    }
+  }, []);
+
+  // Update effect to watch videoId changes to handle autoplay transitions
+  useEffect(() => {
+    console.log('Video ID changed to:', videoId);
+    
+    // When video ID changes (like during autoplay), ensure it's unmuted
+    if (!initialLoadRef.current && playerRef.current) {
+      // Short delay to allow video to start loading
+      setTimeout(() => {
+        ensureVideoUnmuted();
+      }, 1000);
+    }
+  }, [videoId, ensureVideoUnmuted]);
+
   // Event handlers
   const onPlayerReady = (event: YouTubeEvent) => {
     playerRef.current = event.target;
@@ -269,20 +314,14 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     } 
     // Handle initial load
     else if (initialLoadRef.current) {
-      // Always try to unmute on initial load
-      try {
-        // @ts-ignore
-        event.target.unMute();
-        // @ts-ignore
-        event.target.setVolume(80);
-      } catch (err) {
-        console.error('Failed to unmute after initial load:', err);
-      }
-      
+      ensureVideoUnmuted();
       initialLoadRef.current = false;
       
       // Start at beginning for initial load
       event.target.seekTo(effectiveStartTime, true);
+    } else {
+      // For non-initial loads (like autoplay), also ensure unmuted
+      ensureVideoUnmuted();
     }
     
     // Try to force setting playback quality to handle background playback better
@@ -319,25 +358,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     } else if (event.data === PLAYER_STATE.PLAYING) {
       setIsPlaying(true);
       
-      // Auto unmute when playback starts - addresses mobile autoplay restrictions
-      try {
-        // Wait a short moment to ensure player is ready
-        setTimeout(() => {
-          if (playerRef.current) {
-            // @ts-ignore - Check if muted
-            const isMuted = playerRef.current.isMuted();
-            if (isMuted) {
-              console.log('Auto-unmuting video that started muted');
-              // @ts-ignore
-              playerRef.current.unMute();
-              // @ts-ignore - Set to reasonable volume
-              playerRef.current.setVolume(80);
-            }
-          }
-        }, 500);
-      } catch (err) {
-        console.error('Error during auto-unmute:', err);
-      }
+      // Use the more reliable unmute helper
+      ensureVideoUnmuted();
       
       // When playback starts or resumes, also check if we're at the end time
       if (endTime && playerRef.current) {
