@@ -109,7 +109,8 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
       modestbranding: 1,
       rel: 0,
       fs: 1,
-      mute: isMobile.current ? 1 : 0,
+      // Don't force mute in player options, we'll handle this manually
+      // mute: isMobile.current ? 1 : 0,
       // Add playlist parameter to improve background playback
       playlist: videoId,
       // Add loop parameter - we'll handle our own loop mechanism though
@@ -268,18 +269,14 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     } 
     // Handle initial load
     else if (initialLoadRef.current) {
-      // For mobile, try to unmute after starting playback
-      if (isMobile.current) {
-        setTimeout(() => {
-          try {
-            // @ts-ignore
-            event.target.unMute();
-            // @ts-ignore
-            event.target.setVolume(100);
-          } catch (err) {
-            console.error('Failed to unmute after autoplay:', err);
-          }
-        }, 1000);
+      // Always try to unmute on initial load
+      try {
+        // @ts-ignore
+        event.target.unMute();
+        // @ts-ignore
+        event.target.setVolume(80);
+      } catch (err) {
+        console.error('Failed to unmute after initial load:', err);
       }
       
       initialLoadRef.current = false;
@@ -321,6 +318,26 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
       }
     } else if (event.data === PLAYER_STATE.PLAYING) {
       setIsPlaying(true);
+      
+      // Auto unmute when playback starts - addresses mobile autoplay restrictions
+      try {
+        // Wait a short moment to ensure player is ready
+        setTimeout(() => {
+          if (playerRef.current) {
+            // @ts-ignore - Check if muted
+            const isMuted = playerRef.current.isMuted();
+            if (isMuted) {
+              console.log('Auto-unmuting video that started muted');
+              // @ts-ignore
+              playerRef.current.unMute();
+              // @ts-ignore - Set to reasonable volume
+              playerRef.current.setVolume(80);
+            }
+          }
+        }, 500);
+      } catch (err) {
+        console.error('Error during auto-unmute:', err);
+      }
       
       // When playback starts or resumes, also check if we're at the end time
       if (endTime && playerRef.current) {
