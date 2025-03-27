@@ -43,6 +43,10 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   const userPausedRef = useRef(false);
   // Track if we're in a system/auto pause vs user pause
   const systemPausedRef = useRef(false);
+  // Track error retry attempts
+  const errorRetryAttemptsRef = useRef(0);
+  // Track last error timestamp to reset retry counter after success
+  const lastErrorTimestampRef = useRef<number | null>(null);
   
   // Added debug logs
   console.log('YouTubePlayer rendering with props:', {
@@ -289,6 +293,10 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
     // Clear any previous errors
     setPlayerError(null);
     
+    // Reset error counters when player loads successfully
+    errorRetryAttemptsRef.current = 0;
+    lastErrorTimestampRef.current = null;
+    
     // If we have a pending orientation change, restore the state
     if (playerStateRef.current.pendingOrientationChange) {
       try {
@@ -416,24 +424,75 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
   };
   
   const onPlayerError = (event: { data: number }) => {
-    // Handle player errors
-    setPlayerError(`Video playback error: ${event.data}`);
-    console.error(`YouTube player error: ${event.data}`);
+    const errorCode = event.data;
     
-    // Retry loading the video after a short delay
+    // Handle player errors
+    setPlayerError(`Video playback error: ${errorCode}`);
+    console.error(`YouTube player error: ${errorCode}`);
+    
+    const now = Date.now();
+    
+    // Reset retry counter if last error was more than 30 seconds ago
+    if (lastErrorTimestampRef.current === null || (now - lastErrorTimestampRef.current) > 30000) {
+      errorRetryAttemptsRef.current = 0;
+    }
+    
+    // Update last error timestamp
+    lastErrorTimestampRef.current = now;
+    
+    // Increment retry attempts
+    errorRetryAttemptsRef.current++;
+    
+    // Calculate backoff delay (starts at 1s, then 2s, 4s, up to max 10s)
+    let retryDelay = Math.min(1000 * Math.pow(2, errorRetryAttemptsRef.current - 1), 10000);
+    
+    // For error 150, use a shorter initial retry time
+    if (errorCode === 150) {
+      retryDelay = Math.min(500 * Math.pow(1.5, errorRetryAttemptsRef.current - 1), 5000);
+    }
+    
+    console.log(`Retrying video after error ${errorCode} in ${retryDelay}ms (attempt ${errorRetryAttemptsRef.current})`);
+    
+    // Retry loading the video after calculated delay
     setTimeout(() => {
       try {
         if (playerRef.current) {
-          // @ts-ignore
-          playerRef.current.loadVideoById({
-            videoId: videoId,
-            startSeconds: effectiveStartTime,
-          });
+          // For error 150, try cueVideoById first, which doesn't autoplay
+          // This can sometimes avoid the playback issues with error 150
+          if (errorCode === 150 && errorRetryAttemptsRef.current <= 2) {
+            // @ts-ignore
+            playerRef.current.cueVideoById({
+              videoId: videoId,
+              startSeconds: lastRecordedPlaybackTimeRef.current || effectiveStartTime,
+            });
+            
+            // Then manually play after a short delay
+            setTimeout(() => {
+              try {
+                // @ts-ignore
+                if (playerRef.current && !userPausedRef.current) {
+                  // @ts-ignore
+                  playerRef.current.playVideo();
+                }
+                // Clear error if successful
+                setPlayerError(null);
+              } catch (err) {
+                console.error('Failed to play video after cue:', err);
+              }
+            }, 1000);
+          } else {
+            // Regular reload for other errors or if error 150 persists
+            // @ts-ignore
+            playerRef.current.loadVideoById({
+              videoId: videoId,
+              startSeconds: lastRecordedPlaybackTimeRef.current || effectiveStartTime,
+            });
+          }
         }
       } catch (err) {
         console.error('Failed to reload video after error:', err);
       }
-    }, 3000);
+    }, retryDelay);
   };
 
   // Handlers for play/pause buttons - update to handle the user pause flag
