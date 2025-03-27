@@ -647,7 +647,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = memo(({
               Play
             </button>
           )}
-          <button style={buttonStyle} onClick={handleSeekToStart}>
+          <button style={{...buttonStyle, backgroundColor: '#ed8936'}} onClick={handleSeekToStart}>
             Restart
           </button>
         </div>
